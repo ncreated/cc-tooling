@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A Claude Code plugin repo — custom skills, agents, commands, and hooks for cross-project use. All artifacts follow the [Claude Code plugin conventions](https://code.claude.com/docs/en/plugins).
+A Claude Code plugin repo — custom skills, agents, commands, and hooks for cross-project use.
+All artifacts follow the [Claude Code plugin conventions](https://code.claude.com/docs/en/plugins).
+See [README.md](README.md) for directory structure and artifact types overview.
 
 ## Testing
 
