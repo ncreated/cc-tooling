@@ -1,0 +1,6 @@
+# Local Claude Code settings
+**/*.local.json
+**/*.local.md
+
+# OS
+.DS_Store

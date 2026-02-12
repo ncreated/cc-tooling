@@ -1,6 +1,6 @@
 # cc-tooling
 
-Personal Claude Code tooling — custom skills, agents, commands, and hooks managed in one place and installed to `~/.claude/` for cross-project use.
+Personal Claude Code tooling — custom skills, agents, and more.
 
 ## Structure
 
