@@ -36,6 +36,9 @@ Launch a Leader–Researcher–Reviewer agent team for autonomous structured dee
 **`/research-team-guided`**
 Launch a Leader–Researcher–Reviewer agent team with you as a strategic guide and optional domain expert. Same as `research-team` but includes you in key decision points. Requires a research spec file and `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
 
+**`/research-team-chaos`**
+Launch a Leader + Connector + N Researchers team for divergent deep research. Each researcher picks their own angle, a Connector cross-analyzes all findings and creates targeted challenges, and the "chaos" of multiple perspectives surfaces powerful cross-connections. Requires a research spec file and `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
+
 ## Development
 
 See [CLAUDE.md](CLAUDE.md) for plugin conventions and development guidelines.
