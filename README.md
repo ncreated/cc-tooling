@@ -1,41 +1,41 @@
 # cc-tooling
 
-Personal Claude Code tooling — custom skills, agents, and more.
+Personal Claude Code plugin — custom skills for enhanced workflows.
 
-## Structure
+## How to use
 
-Follows the [Claude Code plugin conventions](https://code.claude.com/docs/en/plugins):
-
-```
-cc-tooling/
-├── .claude-plugin/
-│   └── plugin.json          # Plugin metadata
-├── commands/                 # Slash commands (/command-name)
-│   └── *.md
-├── skills/                   # Model-invoked capabilities
-│   └── <skill-name>/
-│       └── SKILL.md
-├── agents/                   # Agent definitions
-│   └── *.md
-├── hooks/                    # Lifecycle hooks
-│   ├── hooks.json
-│   └── hooks-handlers/
-└── .mcp.json                 # MCP server configuration (optional)
-```
-
-## Usage
-
-Test locally during development:
+### Easiest way
 
 ```sh
-claude --plugin-dir ./
+claude --plugin-dir <path to this repo>
 ```
 
-## Artifact Types
+### Use skills
 
-| Type | Location | Trigger |
-|------|----------|---------|
-| **Command** | `commands/*.md` | User-invoked via `/command-name` |
-| **Skill** | `skills/*/SKILL.md` | Model-invoked based on context |
-| **Agent** | `agents/*.md` | Model-invoked for complex tasks |
-| **Hook** | `hooks/hooks.json` | Lifecycle events (`SessionStart`, etc.) |
+Skills are automatically available when the plugin is loaded. Claude will invoke them based on context, or you can explicitly call them:
+
+```sh
+/skill-name [arguments]
+```
+
+## Available Skills
+
+### Communication
+
+**`/friendly-tone`**
+Injects a friendly, optimistic, and concise communication style with emojis.
+
+### Research
+
+**`/research-spec`**
+Interactive guide for creating a structured research specification document. Creates a detailed spec file that can be used with the research team skills.
+
+**`/research-team`**
+Launch a Leader–Researcher–Reviewer agent team for autonomous structured deep research. Requires a research spec file and `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
+
+**`/research-team-guided`**
+Launch a Leader–Researcher–Reviewer agent team with you as a strategic guide and optional domain expert. Same as `research-team` but includes you in key decision points. Requires a research spec file and `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
+
+## Development
+
+See [CLAUDE.md](CLAUDE.md) for plugin conventions and development guidelines.
