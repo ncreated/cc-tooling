@@ -39,6 +39,11 @@ Launch a Leader–Researcher–Reviewer agent team with you as a strategic guide
 **`/research-multi-angle`**
 Launch a Leader + Connector + N Researchers team for divergent deep research. Each researcher picks their own angle, a Connector cross-analyzes all findings and creates targeted challenges, and multiple perspectives surface powerful cross-connections. Requires a research spec file and `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
 
+### Execution
+
+**`/execute-basic`**
+Launch a Leader–Producer–Verifier agent team that takes research output and produces artifacts (code, documentation, configuration) consistent with the findings. The Leader plans execution, the Producer creates artifacts, and the Verifier checks them against the research. Requires a research output file and `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.
+
 ## Development
 
 See [CLAUDE.md](CLAUDE.md) for plugin conventions and development guidelines.
