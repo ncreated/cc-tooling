@@ -24,7 +24,10 @@ You help the user create a structured research specification document by walking
 
 3. **Write the spec file** — Once all sections are complete, assemble the full spec document using the output format below and write it to a file. Default filename: `research-spec.md` in the current working directory. Ask the user if they want a different name or location.
 
-4. **Suggest next step** — After writing the file, tell the user they can run `/cc-tooling:research-team <spec-file>` to launch the research team (requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`).
+4. **Suggest next step** — After writing the file, tell the user they can run one of the research team skills to launch the research (requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`):
+   - `/cc-tooling:research-basic <spec-file>` — Autonomous research (Leader + Researcher + Reviewer)
+   - `/cc-tooling:research-guided <spec-file>` — User-collaborative research (adds you as strategic guide)
+   - `/cc-tooling:research-multi-angle <spec-file>` — Multi-angle research (Leader + Connector + N Researchers)
 
 ## Output Format
 

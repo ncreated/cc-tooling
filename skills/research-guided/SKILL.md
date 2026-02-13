@@ -1,5 +1,5 @@
 ---
-name: research-team-guided
+name: research-guided
 description: Launch a Leader–Researcher–Reviewer agent team with user as strategic guide and optional domain expert
 version: 0.1.0
 ---
@@ -63,8 +63,8 @@ Store their preference and adjust your consultation strategy accordingly.
 ## Step 2 — Prepare Role Prompts
 
 1. Read the role prompt templates from the plugin directory (resolve relative to `${CLAUDE_PLUGIN_ROOT}`):
-   - `skills/research-team-guided/references/researcher-prompt.md`
-   - `skills/research-team-guided/references/reviewer-prompt.md`
+   - `skills/research-guided/references/researcher-prompt.md`
+   - `skills/research-guided/references/reviewer-prompt.md`
 
 2. In each template, replace the `{RESEARCH_SPEC}` placeholder with the full contents of the user's spec file.
 
@@ -72,7 +72,7 @@ Store their preference and adjust your consultation strategy accordingly.
 
 ## Step 2.5 — Read User Consultation Guidelines
 
-Read `skills/research-team-guided/references/user-consultation-guidelines.md` to understand the detailed guidelines for when and how to consult the user. Remember:
+Read `skills/research-guided/references/user-consultation-guidelines.md` to understand the detailed guidelines for when and how to consult the user. Remember:
 - The user's domain expert status from Step 1.5
 - The user's involvement preference from Step 1.5
 - Adjust your consultation strategy based on their preference

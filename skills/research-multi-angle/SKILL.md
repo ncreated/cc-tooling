@@ -1,5 +1,5 @@
 ---
-name: research-team-chaos
+name: research-multi-angle
 description: Launch a Leader + Connector + N Researchers team for divergent deep research — researchers pick angles, Connector cross-analyzes and challenges, no dedicated reviewer
 version: 0.1.0
 ---
@@ -42,8 +42,8 @@ Ask the user how many researchers should explore the topic using `AskUserQuestio
 ## Step 3 — Prepare Role Prompts
 
 1. Read the role prompt templates from the plugin directory (resolve relative to `${CLAUDE_PLUGIN_ROOT}`):
-   - `skills/research-team-chaos/references/researcher-prompt.md`
-   - `skills/research-team-chaos/references/connector-prompt.md`
+   - `skills/research-multi-angle/references/researcher-prompt.md`
+   - `skills/research-multi-angle/references/connector-prompt.md`
 
 2. For each researcher 1..N, prepare a copy of the researcher prompt with these placeholders replaced:
    - `{RESEARCH_SPEC}` → full contents of the user's spec file

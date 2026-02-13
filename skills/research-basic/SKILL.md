@@ -1,5 +1,5 @@
 ---
-name: research-team
+name: research-basic
 description: Launch a Leader–Researcher–Reviewer agent team for structured deep research from a specification file
 version: 0.1.0
 ---
@@ -27,8 +27,8 @@ This skill is invoked when the user wants to run a structured deep research proc
 ## Step 2 — Prepare Role Prompts
 
 1. Read the role prompt templates from the plugin directory (resolve relative to `${CLAUDE_PLUGIN_ROOT}`):
-   - `skills/research-team/references/researcher-prompt.md`
-   - `skills/research-team/references/reviewer-prompt.md`
+   - `skills/research-basic/references/researcher-prompt.md`
+   - `skills/research-basic/references/reviewer-prompt.md`
 
 2. In each template, replace the `{RESEARCH_SPEC}` placeholder with the full contents of the user's spec file.
 
