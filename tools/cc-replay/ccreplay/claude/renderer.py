@@ -20,7 +20,7 @@ def _build_tool_result_lookup(messages: list[Message]) -> dict[str, ContentBlock
     """Build a lookup from tool_use_id to its tool_result ContentBlock."""
     lookup: dict[str, ContentBlock] = {}
     for msg in messages:
-        if msg.role != Role.USER or not msg.is_meta:
+        if msg.role != Role.USER:
             continue
         for block in msg.content_blocks:
             if block.type == BlockType.TOOL_RESULT and block.tool_use_id:
@@ -60,9 +60,19 @@ def _render_messages(
     parts: list[str] = []
 
     for msg in messages:
-        # Skip meta (tool result) messages — rendered inline with tool calls
-        if msg.role == Role.USER and msg.is_meta:
-            continue
+        # Skip user messages that only carry tool results — those are
+        # rendered inline with the corresponding tool_use blocks.
+        # Messages that also contain text (e.g. from plugins/hooks) are
+        # kept so their content is not silently dropped.
+        if msg.role == Role.USER:
+            has_tool_result = any(
+                b.type == BlockType.TOOL_RESULT for b in msg.content_blocks
+            )
+            has_text = any(
+                b.type == BlockType.TEXT for b in msg.content_blocks
+            )
+            if has_tool_result and not has_text:
+                continue
 
         if msg.role == Role.USER:
             text_parts = []
@@ -71,7 +81,8 @@ def _render_messages(
                     text_parts.append(esc(block.text))
             if not text_parts:
                 continue
-            parts.append(T.USER_MESSAGE.format(
+            template = T.USER_META_MESSAGE if msg.is_meta else T.USER_MESSAGE
+            parts.append(template.format(
                 timestamp=esc(msg.timestamp),
                 content="\n".join(text_parts),
             ))

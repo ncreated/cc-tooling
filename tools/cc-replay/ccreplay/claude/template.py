@@ -197,6 +197,16 @@ details > .detail-body {{
     font-size: 12px;
 }}
 
+.user-meta-msg {{
+    background: var(--surface);
+    border-color: var(--border);
+    opacity: 0.75;
+}}
+
+.user-meta-msg .role-label {{
+    color: var(--text-dim);
+}}
+
 .parse-error {{
     background: #2d1b00;
     border: 1px solid var(--warning);
@@ -283,6 +293,14 @@ USER_MESSAGE = """\
 <div class="message user-msg">
 <span class="timestamp">{timestamp}</span>
 <div class="role-label">User</div>
+<div class="content-text">{content}</div>
+</div>
+"""
+
+USER_META_MESSAGE = """\
+<div class="message user-meta-msg">
+<span class="timestamp">{timestamp}</span>
+<div class="role-label">System / Plugin</div>
 <div class="content-text">{content}</div>
 </div>
 """
