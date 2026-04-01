@@ -3,18 +3,35 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 from pathlib import Path
 
-from .parser import parse_session
-from .renderer import render
+_CODEX_TYPES = frozenset({"session_meta", "event_msg", "response_item", "turn_context"})
+
+
+def _detect_format(path: str) -> str:
+    """Detect whether a JSONL file is Claude Code or Codex format.
+
+    Reads the first line and checks for Codex-specific top-level 'type' values.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            first_line = f.readline().strip()
+        if first_line:
+            entry = json.loads(first_line)
+            if entry.get("type") in _CODEX_TYPES:
+                return "codex"
+    except (OSError, json.JSONDecodeError):
+        pass
+    return "claude"
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(
         prog="cc-replay",
-        description="Convert a Claude Code session JSONL file to standalone HTML.",
+        description="Convert a Claude Code or Codex session JSONL file to standalone HTML.",
     )
     ap.add_argument(
         "session_file",
@@ -22,7 +39,13 @@ def main() -> None:
     )
     ap.add_argument(
         "-o", "--output",
-        help="Output HTML file path (default: <session_id>.html in cwd)",
+        help="Output HTML file path (default: <session_id>.html in /tmp/ccreplay/)",
+    )
+    ap.add_argument(
+        "--format",
+        choices=["auto", "claude", "codex"],
+        default="auto",
+        help="Session format (default: auto-detect)",
     )
     ap.add_argument(
         "--no-subagents",
@@ -42,15 +65,37 @@ def main() -> None:
         print(f"Error: file not found: {session_path}", file=sys.stderr)
         sys.exit(1)
 
-    session = parse_session(str(session_path), include_subagents=not args.no_subagents)
-    html_output = render(session)
+    # Detect format
+    fmt = args.format
+    if fmt == "auto":
+        fmt = _detect_format(str(session_path))
+
+    # Parse and render
+    if fmt == "codex":
+        from .codex.parser import parse_codex_session
+        from .codex.renderer import render
+
+        session = parse_codex_session(
+            str(session_path), include_subagents=not args.no_subagents,
+        )
+        html_output = render(session)
+        session_id = session.session_id or session_path.stem
+    else:
+        from .claude.parser import parse_claude_session
+        from .claude.renderer import render
+
+        session = parse_claude_session(
+            str(session_path), include_subagents=not args.no_subagents,
+        )
+        html_output = render(session)
+        session_id = session.session_id
 
     if args.output:
         out_path = Path(args.output)
     else:
         tmp_dir = Path("/tmp/ccreplay")
         tmp_dir.mkdir(parents=True, exist_ok=True)
-        out_path = tmp_dir / f"{session.session_id}.html"
+        out_path = tmp_dir / f"{session_id}.html"
 
     out_path.write_text(html_output, encoding="utf-8")
     print(f"Written to {out_path}")

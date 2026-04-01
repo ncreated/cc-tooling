@@ -1,4 +1,4 @@
-"""HTML/CSS template constants for cc-replay."""
+"""HTML/CSS template constants for Codex session replay."""
 
 HTML_HEAD = """\
 <!DOCTYPE html>
@@ -6,7 +6,7 @@ HTML_HEAD = """\
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>cc-replay: {title}</title>
+<title>cc-replay (Codex): {title}</title>
 <style>
 :root {{
     --bg: #0d1117;
@@ -274,8 +274,8 @@ HTML_FOOT = """\
 
 SESSION_HEADER = """\
 <div class="session-header">
-<h1>cc-replay</h1>
-<div class="meta">Session: {session_id} &mdash; {file_path}</div>
+<h1>cc-replay — Codex Session</h1>
+<div class="meta">Session: {session_id} &mdash; Model: {model} &mdash; {file_path}</div>
 </div>
 """
 
@@ -301,10 +301,10 @@ TEXT_BLOCK = """\
 <div class="content-text">{text}</div>
 """
 
-THINKING_BLOCK = """\
+REASONING_ENCRYPTED_BLOCK = """\
 <details class="thinking">
-<summary>Thinking</summary>
-<div class="detail-body"><pre>{text}</pre></div>
+<summary>Reasoning (encrypted)</summary>
+<div class="detail-body"><pre>[Content encrypted — not available for replay]</pre></div>
 </details>
 """
 

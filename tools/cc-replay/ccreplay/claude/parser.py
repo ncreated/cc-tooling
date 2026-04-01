@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Optional
+
+from ..shared import format_tool_input, read_jsonl, strip_xml_tags
 
 
 # ---------------------------------------------------------------------------
@@ -87,40 +88,15 @@ class Session:
 
 
 # ---------------------------------------------------------------------------
-# Regex for stripping noise from user content
+# Noise stripping tags
 # ---------------------------------------------------------------------------
 
-_SYSTEM_REMINDER_RE = re.compile(
-    r"<system-reminder>.*?</system-reminder>", re.DOTALL
-)
-_LOCAL_CMD_CAVEAT_RE = re.compile(
-    r"<local-command-caveat>.*?</local-command-caveat>", re.DOTALL
-)
+_NOISE_TAGS = ["system-reminder", "local-command-caveat"]
 
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
-
-def _read_jsonl(path: str) -> tuple[list[dict], list[ParseError]]:
-    """Read a JSONL file, returning parsed entries and any parse errors."""
-    entries: list[dict] = []
-    errors: list[ParseError] = []
-    with open(path, "r", encoding="utf-8") as f:
-        for line_number, raw_line in enumerate(f, start=1):
-            stripped = raw_line.strip()
-            if not stripped:
-                continue
-            try:
-                entries.append(json.loads(stripped))
-            except json.JSONDecodeError as exc:
-                errors.append(ParseError(
-                    line_number=line_number,
-                    raw_line=stripped[:200],
-                    error=str(exc),
-                ))
-    return entries, errors
-
 
 def _filter_entries(entries: list[dict]) -> list[dict]:
     """Keep only user/assistant entries, drop synthetic and sidechain."""
@@ -159,37 +135,7 @@ def _deduplicate(entries: list[dict]) -> list[dict]:
 
 def _strip_noise(text: str) -> str:
     """Strip system-reminder and caveat tags from user text content."""
-    text = _SYSTEM_REMINDER_RE.sub("", text)
-    text = _LOCAL_CMD_CAVEAT_RE.sub("", text)
-    return text.strip()
-
-
-def _format_tool_input(data: dict) -> str:
-    """Format tool input dict with multiline string values expanded.
-
-    Instead of showing escaped \\n inside JSON strings, render them
-    as real newlines in an indented block beneath the key.
-    """
-    lines: list[str] = []
-    for key, value in data.items():
-        if isinstance(value, str) and "\n" in value:
-            lines.append(f"{key}:")
-            for vline in value.splitlines():
-                lines.append(f"  {vline}")
-        elif isinstance(value, str):
-            lines.append(f"{key}: {value}")
-        else:
-            try:
-                dumped = json.dumps(value, indent=2, ensure_ascii=False)
-            except (TypeError, ValueError):
-                dumped = str(value)
-            if "\n" in dumped:
-                lines.append(f"{key}:")
-                for vline in dumped.splitlines():
-                    lines.append(f"  {vline}")
-            else:
-                lines.append(f"{key}: {dumped}")
-    return "\n".join(lines)
+    return strip_xml_tags(text, _NOISE_TAGS)
 
 
 def _parse_content_blocks(content, is_user: bool = False) -> list[ContentBlock]:
@@ -224,7 +170,7 @@ def _parse_content_blocks(content, is_user: bool = False) -> list[ContentBlock]:
         elif block_type == "tool_use":
             tool_input = raw.get("input", {})
             try:
-                input_str = _format_tool_input(tool_input)
+                input_str = format_tool_input(tool_input)
             except (TypeError, ValueError):
                 input_str = str(tool_input)
             blocks.append(ContentBlock(
@@ -313,7 +259,7 @@ def _discover_subagents(
     subagents: dict[str, SubagentSession] = {}
     for agent_file in agent_files:
         agent_id = agent_file.stem  # e.g. "agent_abc123"
-        entries, _errors = _read_jsonl(str(agent_file))
+        entries, _errors = read_jsonl(str(agent_file))
         filtered = _filter_entries_for_subagent(entries)
         deduped = _deduplicate(filtered)
         messages = [_to_message(e) for e in deduped]
@@ -377,13 +323,17 @@ def _link_subagents(session: Session) -> None:
 # Public API
 # ---------------------------------------------------------------------------
 
-def parse_session(path: str, include_subagents: bool = True) -> Session:
+def parse_claude_session(path: str, include_subagents: bool = True) -> Session:
     """Parse a Claude Code session JSONL file into a Session object."""
     session_path = Path(path).resolve()
     session_id = session_path.stem
 
-    entries, parse_errors = _read_jsonl(str(session_path))
-    filtered = _filter_entries(entries)
+    raw_entries, raw_errors = read_jsonl(str(session_path))
+    parse_errors = [
+        ParseError(line_number=ln, raw_line=rl, error=err)
+        for ln, rl, err in raw_errors
+    ]
+    filtered = _filter_entries(raw_entries)
     deduped = _deduplicate(filtered)
     messages = [_to_message(e) for e in deduped]
 

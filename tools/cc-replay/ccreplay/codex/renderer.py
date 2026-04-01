@@ -1,10 +1,10 @@
-"""HTML renderer for parsed Claude Code sessions."""
+"""HTML renderer for parsed Codex sessions."""
 
 from __future__ import annotations
 
-import html
 from typing import Optional
 
+from ..shared import esc, truncate
 from . import template as T
 from .parser import (
     BlockType,
@@ -14,20 +14,6 @@ from .parser import (
     Session,
     SubagentSession,
 )
-
-TRUNCATE_LIMIT = 10_000
-
-
-def _esc(text: str) -> str:
-    """HTML-escape text."""
-    return html.escape(text, quote=True)
-
-
-def _truncate(text: str) -> str:
-    """Truncate long text with a marker."""
-    if len(text) <= TRUNCATE_LIMIT:
-        return _esc(text)
-    return _esc(text[:TRUNCATE_LIMIT]) + '\n<span class="truncated">[... truncated]</span>'
 
 
 def _build_tool_result_lookup(messages: list[Message]) -> dict[str, ContentBlock]:
@@ -47,7 +33,7 @@ def _render_tool_result(block: Optional[ContentBlock]) -> str:
     if block is None:
         return ""
     error_class = " error" if block.is_error else ""
-    content = _truncate(block.text)
+    content = truncate(block.text)
     return T.TOOL_RESULT_FRAGMENT.format(
         error_class=error_class,
         content=content,
@@ -57,10 +43,10 @@ def _render_tool_result(block: Optional[ContentBlock]) -> str:
 def _render_subagent(subagent: SubagentSession) -> str:
     """Render a subagent's conversation as nested HTML."""
     tool_lookup = _build_tool_result_lookup(subagent.messages)
-    inner_html = _render_messages(subagent.messages, tool_lookup, subagents={})
+    inner_html = _render_messages(subagent.messages, tool_lookup)
     return T.SUBAGENT_BLOCK.format(
-        description=_esc(subagent.description or subagent.agent_id),
-        agent_type=_esc(subagent.agent_type or "Agent"),
+        description=esc(subagent.description or subagent.session_id),
+        agent_type=esc(subagent.agent_type or "subagent"),
         content=inner_html,
     )
 
@@ -68,13 +54,12 @@ def _render_subagent(subagent: SubagentSession) -> str:
 def _render_messages(
     messages: list[Message],
     tool_lookup: dict[str, ContentBlock],
-    subagents: dict[str, SubagentSession],
 ) -> str:
     """Render a list of messages to HTML."""
     parts: list[str] = []
 
     for msg in messages:
-        # Skip meta (tool result) messages — rendered inline with tool calls
+        # Skip meta messages — tool results rendered inline with tool calls
         if msg.role == Role.USER and msg.is_meta:
             continue
 
@@ -82,11 +67,11 @@ def _render_messages(
             text_parts = []
             for block in msg.content_blocks:
                 if block.type == BlockType.TEXT and block.text:
-                    text_parts.append(_esc(block.text))
+                    text_parts.append(esc(block.text))
             if not text_parts:
                 continue
             parts.append(T.USER_MESSAGE.format(
-                timestamp=_esc(msg.timestamp),
+                timestamp=esc(msg.timestamp),
                 content="\n".join(text_parts),
             ))
 
@@ -94,36 +79,24 @@ def _render_messages(
             block_html: list[str] = []
             for block in msg.content_blocks:
                 if block.type == BlockType.TEXT:
-                    block_html.append(T.TEXT_BLOCK.format(text=_esc(block.text)))
+                    block_html.append(T.TEXT_BLOCK.format(text=esc(block.text)))
 
-                elif block.type == BlockType.THINKING:
-                    block_html.append(T.THINKING_BLOCK.format(
-                        text=_esc(block.text),
-                    ))
+                elif block.type == BlockType.REASONING_ENCRYPTED:
+                    block_html.append(T.REASONING_ENCRYPTED_BLOCK)
 
                 elif block.type == BlockType.TOOL_USE:
-                    # Check if this is an Agent/Task call with a linked subagent
-                    if block.tool_name in ("Agent", "Task") and block.tool_use_id in subagents:
-                        block_html.append(_render_subagent(subagents[block.tool_use_id]))
-                    else:
-                        result_block = tool_lookup.get(block.tool_use_id)
-                        result_html = _render_tool_result(result_block)
-                        block_html.append(T.TOOL_USE_BLOCK.format(
-                            tool_name=_esc(block.tool_name),
-                            tool_input=_truncate(block.tool_input),
-                            tool_result=result_html,
-                        ))
-
-                elif block.type == BlockType.IMAGE:
-                    block_html.append(
-                        '<div class="content-text" style="color: var(--text-dim);">'
-                        '[image]</div>'
-                    )
+                    result_block = tool_lookup.get(block.tool_use_id)
+                    result_html = _render_tool_result(result_block)
+                    block_html.append(T.TOOL_USE_BLOCK.format(
+                        tool_name=esc(block.tool_name),
+                        tool_input=truncate(block.tool_input),
+                        tool_result=result_html,
+                    ))
 
             if block_html:
                 parts.append(T.ASSISTANT_MESSAGE_START.format(
-                    timestamp=_esc(msg.timestamp),
-                    model=_esc(msg.model or "unknown"),
+                    timestamp=esc(msg.timestamp),
+                    model=esc(msg.model or "unknown"),
                 ))
                 parts.extend(block_html)
                 parts.append(T.ASSISTANT_MESSAGE_END)
@@ -132,25 +105,36 @@ def _render_messages(
 
 
 def render(session: Session) -> str:
-    """Render a full Session to a standalone HTML document."""
+    """Render a full Codex Session to a standalone HTML document."""
     parts: list[str] = []
 
-    parts.append(T.HTML_HEAD.format(title=_esc(session.session_id)))
+    parts.append(T.HTML_HEAD.format(title=esc(session.session_id)))
     parts.append(T.SESSION_HEADER.format(
-        session_id=_esc(session.session_id),
-        file_path=_esc(session.file_path),
+        session_id=esc(session.session_id),
+        model=esc(session.model or "unknown"),
+        file_path=esc(session.file_path),
     ))
 
     # Render parse errors at the top
     for err in session.parse_errors:
         parts.append(T.PARSE_ERROR_BLOCK.format(
             line_number=err.line_number,
-            error=_esc(f"{err.error}\nRaw: {err.raw_line}"),
+            error=esc(f"{err.error}\nRaw: {err.raw_line}"),
         ))
 
-    # Build tool result lookup and render messages
+    # Build tool result lookup
     tool_lookup = _build_tool_result_lookup(session.messages)
-    parts.append(_render_messages(session.messages, tool_lookup, session.subagents))
+
+    # Render subagents if present (for CLI parent sessions)
+    if session.subagents:
+        # Render the main session messages (user prompt, final answer)
+        # then inline subagent conversations
+        main_html = _render_messages(session.messages, tool_lookup)
+        parts.append(main_html)
+        for subagent in session.subagents:
+            parts.append(_render_subagent(subagent))
+    else:
+        parts.append(_render_messages(session.messages, tool_lookup))
 
     parts.append(T.HTML_FOOT)
     return "\n".join(parts)
