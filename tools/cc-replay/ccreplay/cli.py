@@ -3,29 +3,11 @@
 from __future__ import annotations
 
 import argparse
-import json
 import subprocess
 import sys
 from pathlib import Path
 
-_CODEX_TYPES = frozenset({"session_meta", "event_msg", "response_item", "turn_context"})
-
-
-def _detect_format(path: str) -> str:
-    """Detect whether a JSONL file is Claude Code or Codex format.
-
-    Reads the first line and checks for Codex-specific top-level 'type' values.
-    """
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            first_line = f.readline().strip()
-        if first_line:
-            entry = json.loads(first_line)
-            if entry.get("type") in _CODEX_TYPES:
-                return "codex"
-    except (OSError, json.JSONDecodeError):
-        pass
-    return "claude"
+from .shared import detect_format
 
 
 def main() -> None:
@@ -68,7 +50,7 @@ def main() -> None:
     # Detect format
     fmt = args.format
     if fmt == "auto":
-        fmt = _detect_format(str(session_path))
+        fmt = detect_format(str(session_path))
 
     # Parse and render
     if fmt == "codex":

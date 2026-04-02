@@ -1,4 +1,4 @@
-.PHONY: install run clean
+.PHONY: install run watch clean
 
 VENV := .venv
 PYTHON := $(VENV)/bin/python
@@ -9,6 +9,9 @@ install:
 
 run: install
 	$(PYTHON) -m ccreplay $(ARGS)
+
+watch: install
+	$(PYTHON) -m ccwatch $(ARGS)
 
 clean:
 	rm -rf $(VENV)

@@ -9,6 +9,25 @@ import re
 
 TRUNCATE_LIMIT = 10_000
 
+_CODEX_TYPES = frozenset({"session_meta", "event_msg", "response_item", "turn_context"})
+
+
+def detect_format(path: str) -> str:
+    """Detect whether a JSONL file is Claude Code or Codex format.
+
+    Reads the first line and checks for Codex-specific top-level 'type' values.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            first_line = f.readline().strip()
+        if first_line:
+            entry = json.loads(first_line)
+            if entry.get("type") in _CODEX_TYPES:
+                return "codex"
+    except (OSError, json.JSONDecodeError):
+        pass
+    return "claude"
+
 
 def read_jsonl(path: str) -> tuple[list[dict], list[tuple[int, str, str]]]:
     """Read a JSONL file, returning parsed entries and error tuples.
