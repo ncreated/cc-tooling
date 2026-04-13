@@ -9,8 +9,10 @@ import sys
 from dataclasses import asdict
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
+from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
 
+from .analysis import analyze_sessions
 from .discovery import discover_sessions, search_sessions
 from .template import SHELL_HTML
 
@@ -66,6 +68,13 @@ class WatchHandler(BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/analyze":
+            self._handle_analyze()
+        else:
+            self.send_error(404)
+
     def _serve_html(self, html: str, code: int = 200):
         body = html.encode("utf-8")
         self.send_response(code)
@@ -98,6 +107,48 @@ class WatchHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _serve_json(self, data: dict, code: int = 200):
+        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _handle_analyze(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            raw = self.rfile.read(length)
+            body = json.loads(raw)
+        except (ValueError, json.JSONDecodeError):
+            self._serve_json({"error": "Invalid JSON body"}, 400)
+            return
+
+        session_paths = body.get("session_paths", [])
+        prompt = body.get("prompt", "").strip()
+
+        if not session_paths:
+            self._serve_json({"error": "No sessions selected"}, 400)
+            return
+        if not prompt:
+            self._serve_json({"error": "No prompt provided"}, 400)
+            return
+
+        # Validate all paths
+        for path in session_paths:
+            if not _validate_path(path):
+                self._serve_json({"error": f"Path not allowed: {path}"}, 403)
+                return
+            if not Path(path).is_file():
+                self._serve_json({"error": f"Session file not found: {path}"}, 404)
+                return
+
+        try:
+            response = analyze_sessions(session_paths, prompt)
+            self._serve_json({"response": response})
+        except Exception as exc:
+            self._serve_json({"error": str(exc)}, 500)
 
     def _serve_session(self):
         encoded = self.path[len("/session/"):]
@@ -139,7 +190,10 @@ def main():
     )
     args = ap.parse_args()
 
-    server = HTTPServer(("127.0.0.1", args.port), WatchHandler)
+    class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
+        daemon_threads = True
+
+    server = ThreadedHTTPServer(("127.0.0.1", args.port), WatchHandler)
     print(f"ccwatch running at http://localhost:{args.port}/")
     print("Press Ctrl+C to stop.")
     try:

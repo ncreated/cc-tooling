@@ -19,6 +19,7 @@ SHELL_HTML = """\
     --codex-badge: #3fb950;
     --hover: #1c2128;
     --active: #1a3a5c;
+    --error: #f85149;
     --font: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
 }}
 
@@ -132,13 +133,13 @@ body {{
 .clear-btn.enabled {{
     opacity: 1;
     pointer-events: auto;
-    color: #f85149;
+    color: var(--error);
     border-color: #f8514966;
 }}
 
 .clear-btn.enabled:hover {{
     background: #f8514922;
-    border-color: #f85149;
+    border-color: var(--error);
 }}
 
 .type-filters {{
@@ -177,7 +178,9 @@ body {{
 }}
 
 .session-card {{
-    display: block;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
     padding: 10px 12px;
     border-radius: 6px;
     cursor: pointer;
@@ -194,6 +197,26 @@ body {{
 .session-card.active {{
     background: var(--active);
     border-left-color: var(--accent);
+}}
+
+.session-card.selected {{
+    border-left-color: var(--codex-badge);
+}}
+
+.session-card.active.selected {{
+    border-left-color: var(--accent);
+}}
+
+.card-checkbox {{
+    margin-top: 2px;
+    flex-shrink: 0;
+    accent-color: var(--codex-badge);
+    cursor: pointer;
+}}
+
+.card-body {{
+    flex: 1;
+    min-width: 0;
 }}
 
 .card-header {{
@@ -259,15 +282,23 @@ body {{
     font-size: 12px;
 }}
 
-/* --- Content panel --- */
+/* --- Content area --- */
 .content {{
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+}}
+
+.content-main {{
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
 }}
 
-.content iframe {{
+.content-main iframe {{
     width: 100%;
     height: 100%;
     border: none;
@@ -279,21 +310,186 @@ body {{
     font-size: 14px;
 }}
 
+/* --- Analysis panel --- */
+.analysis-panel {{
+    width: 420px;
+    border-left: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}}
+
+.analysis-panel.collapsed {{
+    width: 40px;
+}}
+
+.analysis-header {{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}}
+
+.analysis-header h2 {{
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    flex: 1;
+}}
+
+.analysis-toggle {{
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-family: var(--font);
+    font-size: 12px;
+    padding: 2px 6px;
+    cursor: pointer;
+}}
+
+.analysis-toggle:hover {{
+    color: var(--text);
+    border-color: var(--text-dim);
+}}
+
+.collapsed .analysis-header {{
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    padding: 16px 10px;
+    border-bottom: none;
+    border-left: none;
+}}
+
+.collapsed .analysis-header h2 {{
+    font-size: 12px;
+}}
+
+.collapsed .analysis-toggle {{
+    writing-mode: horizontal-tb;
+    margin-top: 8px;
+}}
+
+.collapsed .analysis-body {{
+    display: none;
+}}
+
+.analysis-body {{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}}
+
+.analysis-selected {{
+    padding: 8px 16px;
+    font-size: 11px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}}
+
+.analysis-selected strong {{
+    color: var(--codex-badge);
+}}
+
+.analysis-output {{
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}}
+
+.analysis-output .error {{
+    color: var(--error);
+}}
+
+.analysis-output .placeholder-text {{
+    color: var(--text-dim);
+    font-style: italic;
+}}
+
+.analysis-input-row {{
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}}
+
+.analysis-input {{
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    padding: 8px 10px;
+    outline: none;
+    resize: none;
+    min-height: 36px;
+    max-height: 100px;
+}}
+
+.analysis-input:focus {{
+    border-color: var(--accent);
+}}
+
+.analysis-input::placeholder {{
+    color: var(--text-dim);
+}}
+
+.analysis-input:disabled {{
+    opacity: 0.4;
+}}
+
+.analysis-send {{
+    background: var(--active);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    color: var(--accent);
+    font-family: var(--font);
+    font-size: 12px;
+    padding: 8px 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+    align-self: flex-end;
+}}
+
+.analysis-send:hover {{
+    background: var(--accent);
+    color: var(--bg);
+}}
+
+.analysis-send:disabled {{
+    opacity: 0.3;
+    cursor: default;
+    background: var(--bg);
+    color: var(--text-dim);
+    border-color: var(--border);
+}}
+
 /* --- Scrollbar --- */
-.session-list::-webkit-scrollbar {{
+.session-list::-webkit-scrollbar, .analysis-output::-webkit-scrollbar {{
     width: 6px;
 }}
 
-.session-list::-webkit-scrollbar-track {{
+.session-list::-webkit-scrollbar-track, .analysis-output::-webkit-scrollbar-track {{
     background: transparent;
 }}
 
-.session-list::-webkit-scrollbar-thumb {{
+.session-list::-webkit-scrollbar-thumb, .analysis-output::-webkit-scrollbar-thumb {{
     background: var(--border);
     border-radius: 3px;
 }}
 
-.session-list::-webkit-scrollbar-thumb:hover {{
+.session-list::-webkit-scrollbar-thumb:hover, .analysis-output::-webkit-scrollbar-thumb:hover {{
     background: var(--text-dim);
 }}
 
@@ -344,35 +540,61 @@ body {{
         </div>
     </div>
     <div class="content" id="content">
-        <div class="placeholder">Select a session from the sidebar</div>
+        <div class="content-main" id="contentMain">
+            <div class="placeholder">Select a session from the sidebar</div>
+        </div>
+        <div class="analysis-panel" id="analysisPanel">
+            <div class="analysis-header">
+                <h2>Analysis</h2>
+                <button class="analysis-toggle" id="analysisToggle">&laquo;</button>
+            </div>
+            <div class="analysis-body">
+                <div class="analysis-selected" id="analysisSelected">No sessions selected</div>
+                <div class="analysis-output" id="analysisOutput">
+                    <span class="placeholder-text">Select sessions and ask a question</span>
+                </div>
+                <div class="analysis-input-row">
+                    <textarea class="analysis-input" id="analysisInput"
+                        placeholder="Ask about selected sessions..."
+                        rows="1" disabled></textarea>
+                    <button class="analysis-send" id="analysisSend" disabled>Send</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 <script>
 (function() {{
-    let sessions = [];
-    let activeType = "all";
-    let activeSessionPath = null;
-    let isSearching = false;  // true when showing server-side search results
+    var sessions = [];
+    var activeType = "all";
+    var activeSessionPath = null;
+    var isSearching = false;
+    var selectedPaths = new Set();
+    var analysisAbort = null;
+
+    // --- Utilities ---
 
     function relativeTime(isoStr) {{
-        const d = new Date(isoStr);
-        const now = new Date();
-        const diffMs = now - d;
-        const diffMin = Math.floor(diffMs / 60000);
+        var d = new Date(isoStr);
+        var now = new Date();
+        var diffMs = now - d;
+        var diffMin = Math.floor(diffMs / 60000);
         if (diffMin < 1) return "just now";
         if (diffMin < 60) return diffMin + "m ago";
-        const diffHr = Math.floor(diffMin / 60);
+        var diffHr = Math.floor(diffMin / 60);
         if (diffHr < 24) return diffHr + "h ago";
-        const diffDay = Math.floor(diffHr / 24);
+        var diffDay = Math.floor(diffHr / 24);
         if (diffDay < 7) return diffDay + "d ago";
         return d.toLocaleDateString("en-US", {{ month: "short", day: "numeric" }});
     }}
 
     function escHtml(s) {{
-        const d = document.createElement("div");
+        var d = document.createElement("div");
         d.textContent = s;
         return d.innerHTML;
     }}
+
+    // --- Search ---
 
     function showLoading() {{
         document.getElementById("sessionList").innerHTML =
@@ -380,11 +602,9 @@ body {{
     }}
 
     function renderCards(data) {{
-        const list = document.getElementById("sessionList");
-        let filtered = data;
+        var list = document.getElementById("sessionList");
+        var filtered = data;
 
-        // Apply client-side type filter only when not searching
-        // (server already filters by type during search)
         if (!isSearching && activeType !== "all") {{
             filtered = data.filter(function(s) {{
                 return s.format === activeType;
@@ -398,14 +618,20 @@ body {{
 
         list.scrollTop = 0;
 
-        let html = "";
-        for (let i = 0; i < filtered.length; i++) {{
-            const s = filtered[i];
-            const isActive = s.path === activeSessionPath;
-            const badgeClass = s.format === "claude" ? "badge-claude" : "badge-codex";
-            const label = s.format === "claude" ? "Claude" : "Codex";
+        var html = "";
+        for (var i = 0; i < filtered.length; i++) {{
+            var s = filtered[i];
+            var isActive = s.path === activeSessionPath;
+            var isSelected = selectedPaths.has(s.path);
+            var badgeClass = s.format === "claude" ? "badge-claude" : "badge-codex";
+            var label = s.format === "claude" ? "Claude" : "Codex";
+            var cardClass = "session-card";
+            if (isActive) cardClass += " active";
+            if (isSelected) cardClass += " selected";
 
-            html += '<div class="session-card' + (isActive ? ' active' : '') + '" data-path="' + escHtml(s.encoded) + '" data-raw-path="' + escHtml(s.path) + '">';
+            html += '<div class="' + cardClass + '" data-path="' + escHtml(s.encoded) + '" data-raw-path="' + escHtml(s.path) + '">';
+            html += '<input type="checkbox" class="card-checkbox"' + (isSelected ? ' checked' : '') + '>';
+            html += '<div class="card-body">';
             html += '<div class="card-header">';
             html += '<span class="badge ' + badgeClass + '">' + label + '</span>';
             html += '<span class="card-time" title="' + escHtml(s.timestamp) + '">' + relativeTime(s.timestamp) + '</span>';
@@ -418,23 +644,39 @@ body {{
                 html += '<div class="card-slug">' + escHtml(s.slug) + '</div>';
             }}
             if (s.first_prompt) {{
-                let prompt = s.first_prompt;
-                // Strip XML-like tags for display
+                var prompt = s.first_prompt;
                 prompt = prompt.replace(/<[^>]+>/g, "").trim();
                 if (prompt) {{
                     html += '<div class="card-prompt">' + escHtml(prompt) + '</div>';
                 }}
             }}
             html += '</div>';
+            html += '</div>';
         }}
         list.innerHTML = html;
 
-        // Attach click handlers
-        const cards = list.querySelectorAll(".session-card");
-        cards.forEach(function(card) {{
-            card.addEventListener("click", function() {{
-                const encoded = card.getAttribute("data-path");
-                const rawPath = card.getAttribute("data-raw-path");
+        // Attach handlers
+        list.querySelectorAll(".session-card").forEach(function(card) {{
+            var checkbox = card.querySelector(".card-checkbox");
+            var rawPath = card.getAttribute("data-raw-path");
+            var encoded = card.getAttribute("data-path");
+
+            // Checkbox: toggle selection
+            checkbox.addEventListener("click", function(e) {{
+                e.stopPropagation();
+                if (selectedPaths.has(rawPath)) {{
+                    selectedPaths.delete(rawPath);
+                    card.classList.remove("selected");
+                }} else {{
+                    selectedPaths.add(rawPath);
+                    card.classList.add("selected");
+                }}
+                updateAnalysisState();
+            }});
+
+            // Card click: open in iframe
+            card.addEventListener("click", function(e) {{
+                if (e.target === checkbox) return;
                 openSession(encoded, rawPath);
             }});
         }});
@@ -442,7 +684,7 @@ body {{
 
     function openSession(encoded, rawPath) {{
         activeSessionPath = rawPath;
-        document.getElementById("content").innerHTML =
+        document.getElementById("contentMain").innerHTML =
             '<iframe src="/session/' + encoded + '"></iframe>';
         window.location.hash = encoded;
         document.querySelectorAll(".session-card").forEach(function(c) {{
@@ -451,16 +693,15 @@ body {{
     }}
 
     function doSearch() {{
-        const query = document.getElementById("filterInput").value.trim();
+        var query = document.getElementById("filterInput").value.trim();
         if (!query) {{
-            // Clear search — show cached sessions
             isSearching = false;
             renderCards(sessions);
             return;
         }}
         isSearching = true;
         showLoading();
-        const params = new URLSearchParams({{ q: query, type: activeType }});
+        var params = new URLSearchParams({{ q: query, type: activeType }});
         fetch("/api/sessions?" + params)
             .then(function(r) {{ return r.json(); }})
             .then(function(data) {{
@@ -477,10 +718,79 @@ body {{
         document.getElementById("clearBtn").classList.toggle("enabled", hasText);
     }}
 
-    // Search button
+    // --- Analysis panel ---
+
+    function updateAnalysisState() {{
+        var count = selectedPaths.size;
+        var selEl = document.getElementById("analysisSelected");
+        var inputEl = document.getElementById("analysisInput");
+        var sendEl = document.getElementById("analysisSend");
+
+        if (count === 0) {{
+            selEl.innerHTML = "No sessions selected";
+            inputEl.disabled = true;
+            inputEl.placeholder = "Select sessions first...";
+            sendEl.disabled = true;
+        }} else {{
+            selEl.innerHTML = "<strong>" + count + "</strong> session" + (count > 1 ? "s" : "") + " selected";
+            inputEl.disabled = false;
+            inputEl.placeholder = "Ask about selected sessions...";
+            sendEl.disabled = false;
+        }}
+    }}
+
+    function doAnalyze() {{
+        var prompt = document.getElementById("analysisInput").value.trim();
+        if (!prompt || selectedPaths.size === 0) return;
+
+        var outputEl = document.getElementById("analysisOutput");
+        var inputEl = document.getElementById("analysisInput");
+        var sendEl = document.getElementById("analysisSend");
+
+        // Cancel previous request
+        if (analysisAbort) {{
+            analysisAbort.abort();
+        }}
+        analysisAbort = new AbortController();
+
+        // Show loading state
+        outputEl.innerHTML = '<div class="loading"><div class="spinner"></div><div>Analyzing...</div></div>';
+        inputEl.disabled = true;
+        sendEl.disabled = true;
+
+        fetch("/api/analyze", {{
+            method: "POST",
+            headers: {{ "Content-Type": "application/json" }},
+            body: JSON.stringify({{
+                session_paths: Array.from(selectedPaths),
+                prompt: prompt
+            }}),
+            signal: analysisAbort.signal
+        }})
+        .then(function(r) {{ return r.json(); }})
+        .then(function(data) {{
+            if (data.error) {{
+                outputEl.innerHTML = '<span class="error">' + escHtml(data.error) + '</span>';
+            }} else {{
+                outputEl.textContent = data.response;
+            }}
+        }})
+        .catch(function(err) {{
+            if (err.name !== "AbortError") {{
+                outputEl.innerHTML = '<span class="error">Request failed</span>';
+            }}
+        }})
+        .finally(function() {{
+            inputEl.disabled = false;
+            sendEl.disabled = selectedPaths.size === 0;
+            inputEl.focus();
+        }});
+    }}
+
+    // --- Event listeners ---
+
     document.getElementById("searchBtn").addEventListener("click", doSearch);
 
-    // Clear button
     document.getElementById("clearBtn").addEventListener("click", function() {{
         document.getElementById("filterInput").value = "";
         updateClearBtn();
@@ -488,17 +798,12 @@ body {{
         renderCards(sessions);
     }});
 
-    // Toggle clear button visibility on typing
     document.getElementById("filterInput").addEventListener("input", updateClearBtn);
 
-    // Enter key in search input
     document.getElementById("filterInput").addEventListener("keydown", function(e) {{
-        if (e.key === "Enter") {{
-            doSearch();
-        }}
+        if (e.key === "Enter") doSearch();
     }});
 
-    // Type filter buttons
     document.querySelectorAll(".type-btn").forEach(function(btn) {{
         btn.addEventListener("click", function() {{
             document.querySelectorAll(".type-btn").forEach(function(b) {{
@@ -514,22 +819,38 @@ body {{
         }});
     }});
 
+    // Analysis panel
+    document.getElementById("analysisSend").addEventListener("click", doAnalyze);
+
+    document.getElementById("analysisInput").addEventListener("keydown", function(e) {{
+        if (e.key === "Enter" && !e.shiftKey) {{
+            e.preventDefault();
+            doAnalyze();
+        }}
+    }});
+
+    document.getElementById("analysisToggle").addEventListener("click", function() {{
+        var panel = document.getElementById("analysisPanel");
+        var btn = document.getElementById("analysisToggle");
+        panel.classList.toggle("collapsed");
+        btn.textContent = panel.classList.contains("collapsed") ? "\\u00bb" : "\\u00ab";
+    }});
+
     // Load sessions
     fetch("/api/sessions")
         .then(function(r) {{ return r.json(); }})
         .then(function(data) {{
             sessions = data;
             renderCards(sessions);
-            // Restore from hash
             if (window.location.hash) {{
-                const encoded = window.location.hash.slice(1);
-                const match = sessions.find(function(s) {{ return s.encoded === encoded; }});
+                var encoded = window.location.hash.slice(1);
+                var match = sessions.find(function(s) {{ return s.encoded === encoded; }});
                 if (match) {{
                     openSession(encoded, match.path);
                 }}
             }}
         }})
-        .catch(function(err) {{
+        .catch(function() {{
             document.getElementById("sessionList").innerHTML =
                 '<div class="empty-state">Failed to load sessions</div>';
         }});
