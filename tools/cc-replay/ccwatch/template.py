@@ -91,6 +91,56 @@ body {{
     color: var(--text-dim);
 }}
 
+.search-btn {{
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-family: var(--font);
+    font-size: 12px;
+    padding: 6px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}}
+
+.search-btn:hover {{
+    color: var(--text);
+    border-color: var(--text-dim);
+}}
+
+.search-btn:active {{
+    background: var(--active);
+    border-color: var(--accent);
+}}
+
+.clear-btn {{
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 8px;
+    cursor: pointer;
+    flex-shrink: 0;
+    opacity: 0.3;
+    pointer-events: none;
+}}
+
+.clear-btn.enabled {{
+    opacity: 1;
+    pointer-events: auto;
+    color: #f85149;
+    border-color: #f8514966;
+}}
+
+.clear-btn.enabled:hover {{
+    background: #f8514922;
+    border-color: #f85149;
+}}
+
 .type-filters {{
     display: flex;
     gap: 4px;
@@ -276,7 +326,9 @@ body {{
         <div class="sidebar-header">
             <h1>ccwatch</h1>
             <div class="filter-row">
-                <input type="text" class="filter-input" placeholder="Filter sessions..." id="filterInput">
+                <input type="text" class="filter-input" placeholder="Search sessions..." id="filterInput">
+                <button class="search-btn" id="searchBtn">Search</button>
+                <button class="clear-btn" id="clearBtn">&times;</button>
             </div>
             <div class="type-filters">
                 <button class="type-btn active" data-type="all">All</button>
@@ -300,6 +352,7 @@ body {{
     let sessions = [];
     let activeType = "all";
     let activeSessionPath = null;
+    let isSearching = false;  // true when showing server-side search results
 
     function relativeTime(isoStr) {{
         const d = new Date(isoStr);
@@ -321,22 +374,29 @@ body {{
         return d.innerHTML;
     }}
 
-    function renderCards() {{
+    function showLoading() {{
+        document.getElementById("sessionList").innerHTML =
+            '<div class="loading"><div class="spinner"></div><div>Searching...</div></div>';
+    }}
+
+    function renderCards(data) {{
         const list = document.getElementById("sessionList");
-        const filter = document.getElementById("filterInput").value.toLowerCase();
-        const filtered = sessions.filter(function(s) {{
-            if (activeType !== "all" && s.format !== activeType) return false;
-            if (filter) {{
-                const haystack = (s.project + " " + s.slug + " " + s.first_prompt).toLowerCase();
-                return haystack.indexOf(filter) !== -1;
-            }}
-            return true;
-        }});
+        let filtered = data;
+
+        // Apply client-side type filter only when not searching
+        // (server already filters by type during search)
+        if (!isSearching && activeType !== "all") {{
+            filtered = data.filter(function(s) {{
+                return s.format === activeType;
+            }});
+        }}
 
         if (filtered.length === 0) {{
             list.innerHTML = '<div class="empty-state">No sessions found</div>';
             return;
         }}
+
+        list.scrollTop = 0;
 
         let html = "";
         for (let i = 0; i < filtered.length; i++) {{
@@ -382,11 +442,61 @@ body {{
 
     function openSession(encoded, rawPath) {{
         activeSessionPath = rawPath;
-        const content = document.getElementById("content");
-        content.innerHTML = '<iframe src="/session/' + encoded + '"></iframe>';
-        renderCards(); // re-render to update active state
+        document.getElementById("content").innerHTML =
+            '<iframe src="/session/' + encoded + '"></iframe>';
         window.location.hash = encoded;
+        document.querySelectorAll(".session-card").forEach(function(c) {{
+            c.classList.toggle("active", c.getAttribute("data-raw-path") === rawPath);
+        }});
     }}
+
+    function doSearch() {{
+        const query = document.getElementById("filterInput").value.trim();
+        if (!query) {{
+            // Clear search — show cached sessions
+            isSearching = false;
+            renderCards(sessions);
+            return;
+        }}
+        isSearching = true;
+        showLoading();
+        const params = new URLSearchParams({{ q: query, type: activeType }});
+        fetch("/api/sessions?" + params)
+            .then(function(r) {{ return r.json(); }})
+            .then(function(data) {{
+                renderCards(data);
+            }})
+            .catch(function() {{
+                document.getElementById("sessionList").innerHTML =
+                    '<div class="empty-state">Search failed</div>';
+            }});
+    }}
+
+    function updateClearBtn() {{
+        var hasText = document.getElementById("filterInput").value.trim().length > 0;
+        document.getElementById("clearBtn").classList.toggle("enabled", hasText);
+    }}
+
+    // Search button
+    document.getElementById("searchBtn").addEventListener("click", doSearch);
+
+    // Clear button
+    document.getElementById("clearBtn").addEventListener("click", function() {{
+        document.getElementById("filterInput").value = "";
+        updateClearBtn();
+        isSearching = false;
+        renderCards(sessions);
+    }});
+
+    // Toggle clear button visibility on typing
+    document.getElementById("filterInput").addEventListener("input", updateClearBtn);
+
+    // Enter key in search input
+    document.getElementById("filterInput").addEventListener("keydown", function(e) {{
+        if (e.key === "Enter") {{
+            doSearch();
+        }}
+    }});
 
     // Type filter buttons
     document.querySelectorAll(".type-btn").forEach(function(btn) {{
@@ -396,19 +506,20 @@ body {{
             }});
             btn.classList.add("active");
             activeType = btn.getAttribute("data-type");
-            renderCards();
+            if (isSearching) {{
+                doSearch();
+            }} else {{
+                renderCards(sessions);
+            }}
         }});
     }});
-
-    // Text filter
-    document.getElementById("filterInput").addEventListener("input", renderCards);
 
     // Load sessions
     fetch("/api/sessions")
         .then(function(r) {{ return r.json(); }})
         .then(function(data) {{
             sessions = data;
-            renderCards();
+            renderCards(sessions);
             // Restore from hash
             if (window.location.hash) {{
                 const encoded = window.location.hash.slice(1);

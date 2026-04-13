@@ -9,8 +9,9 @@ import sys
 from dataclasses import asdict
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
+from urllib.parse import urlparse, parse_qs
 
-from .discovery import discover_sessions
+from .discovery import discover_sessions, search_sessions
 from .template import SHELL_HTML
 
 # Allowed path prefixes for session rendering (security check)
@@ -55,11 +56,12 @@ def _render_session(path: str) -> str:
 
 class WatchHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == "/":
+        parsed = urlparse(self.path)
+        if parsed.path == "/":
             self._serve_html(SHELL_HTML.format(), 200)
-        elif self.path == "/api/sessions":
-            self._serve_sessions_json()
-        elif self.path.startswith("/session/"):
+        elif parsed.path == "/api/sessions":
+            self._serve_sessions_json(parse_qs(parsed.query))
+        elif parsed.path.startswith("/session/"):
             self._serve_session()
         else:
             self.send_error(404)
@@ -72,8 +74,19 @@ class WatchHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _serve_sessions_json(self):
-        sessions = discover_sessions(limit=100)
+    def _serve_sessions_json(self, params=None):
+        params = params or {}
+        q = params.get("q", [""])[0].strip()
+        type_filter = params.get("type", ["all"])[0]
+
+        if q:
+            sessions = search_sessions(q, limit=100)
+        else:
+            sessions = discover_sessions(limit=100)
+
+        if type_filter and type_filter != "all":
+            sessions = [s for s in sessions if s.format == type_filter]
+
         data = []
         for s in sessions:
             d = asdict(s)

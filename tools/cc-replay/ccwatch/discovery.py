@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -117,125 +118,157 @@ def _extract_claude_metadata(entries: list[dict]) -> dict:
     return result
 
 
-def discover_claude_sessions(limit: int = 100) -> list[SessionInfo]:
-    """Discover Claude Code sessions from ~/.claude/projects/."""
-    projects_dir = Path.home() / ".claude" / "projects"
-    if not projects_dir.is_dir():
-        return []
+# ---------------------------------------------------------------------------
+# Path collection
+# ---------------------------------------------------------------------------
 
-    # Collect all .jsonl files with their mtimes
-    candidates: list[tuple[float, Path]] = []
-    for project_dir in projects_dir.iterdir():
-        if not project_dir.is_dir():
-            continue
-        for jsonl_file in project_dir.glob("*.jsonl"):
-            if not jsonl_file.is_file():
+def _collect_searchable_paths(limit: int) -> list[tuple[float, Path, str]]:
+    """Collect session JSONL paths with mtime and format, sorted by recency.
+
+    Returns list of (mtime, path, format) tuples, capped at *limit*.
+    """
+    candidates: list[tuple[float, Path, str]] = []
+
+    # Claude sessions
+    claude_dir = Path.home() / ".claude" / "projects"
+    if claude_dir.is_dir():
+        for project_dir in claude_dir.iterdir():
+            if not project_dir.is_dir():
                 continue
+            for jsonl_file in project_dir.glob("*.jsonl"):
+                if not jsonl_file.is_file():
+                    continue
+                try:
+                    candidates.append((jsonl_file.stat().st_mtime, jsonl_file, "claude"))
+                except OSError:
+                    continue
+
+    # Codex sessions
+    codex_dir = Path.home() / ".codex" / "sessions"
+    if codex_dir.is_dir():
+        for jsonl_file in codex_dir.rglob("rollout-*.jsonl"):
             try:
-                mtime = jsonl_file.stat().st_mtime
+                candidates.append((jsonl_file.stat().st_mtime, jsonl_file, "codex"))
             except OSError:
                 continue
-            candidates.append((mtime, jsonl_file))
 
-    # Sort by mtime descending, take top N
     candidates.sort(key=lambda x: x[0], reverse=True)
-    candidates = candidates[:limit]
+    return candidates[:limit]
+
+
+# ---------------------------------------------------------------------------
+# Per-file metadata builders
+# ---------------------------------------------------------------------------
+
+def _build_claude_session_info(jsonl_file: Path) -> SessionInfo | None:
+    """Read metadata from a Claude session file and return SessionInfo."""
+    entries = _read_first_lines(str(jsonl_file))
+    if not entries:
+        return None
+
+    timestamp = ""
+    for entry in entries:
+        ts = entry.get("timestamp", "")
+        if ts:
+            timestamp = ts
+            break
+
+    if not timestamp:
+        return None
+
+    meta = _extract_claude_metadata(entries)
+
+    return SessionInfo(
+        path=str(jsonl_file),
+        format="claude",
+        timestamp=timestamp,
+        project=_project_name_from_cwd(meta["cwd"]),
+        slug=meta["slug"],
+        first_prompt=meta["first_prompt"],
+        git_branch=meta["git_branch"],
+    )
+
+
+def _build_codex_session_info(jsonl_file: Path) -> SessionInfo | None:
+    """Read metadata from a Codex session file and return SessionInfo."""
+    entries = _read_first_lines(str(jsonl_file), max_lines=15)
+    if not entries:
+        return None
+
+    meta = entries[0]
+    if meta.get("type") != "session_meta":
+        return None
+
+    payload = meta.get("payload", {})
+
+    # Skip subagent sessions
+    source = payload.get("source", "")
+    if isinstance(source, dict) and "subagent" in source:
+        return None
+
+    timestamp = payload.get("timestamp", meta.get("timestamp", ""))
+    project_name = _project_name_from_codex(payload)
+
+    first_prompt = ""
+    for entry in entries[1:]:
+        if entry.get("type") != "response_item":
+            continue
+        p = entry.get("payload", {})
+        if p.get("role") != "user":
+            continue
+        for block in p.get("content", []):
+            if block.get("type") == "input_text":
+                text = block.get("text", "").strip()
+                if text.startswith("<") or text.startswith("#"):
+                    continue
+                first_prompt = text[:200]
+                break
+        if first_prompt:
+            break
+
+    return SessionInfo(
+        path=str(jsonl_file),
+        format="codex",
+        timestamp=timestamp,
+        project=project_name,
+        first_prompt=first_prompt,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Discovery (listing)
+# ---------------------------------------------------------------------------
+
+def discover_claude_sessions(limit: int = 100) -> list[SessionInfo]:
+    """Discover Claude Code sessions from ~/.claude/projects/."""
+    candidates = [
+        (mtime, path)
+        for mtime, path, fmt in _collect_searchable_paths(limit * 2)
+        if fmt == "claude"
+    ][:limit]
 
     sessions: list[SessionInfo] = []
     for _mtime, jsonl_file in candidates:
-        entries = _read_first_lines(str(jsonl_file))
-        if not entries:
-            continue
-
-        # Find timestamp from first entry that has one
-        timestamp = ""
-        for entry in entries:
-            ts = entry.get("timestamp", "")
-            if ts:
-                timestamp = ts
-                break
-
-        if not timestamp:
-            continue
-
-        meta = _extract_claude_metadata(entries)
-
-        sessions.append(SessionInfo(
-            path=str(jsonl_file),
-            format="claude",
-            timestamp=timestamp,
-            project=_project_name_from_cwd(meta["cwd"]),
-            slug=meta["slug"],
-            first_prompt=meta["first_prompt"],
-            git_branch=meta["git_branch"],
-        ))
+        info = _build_claude_session_info(jsonl_file)
+        if info:
+            sessions.append(info)
 
     return sessions
 
 
 def discover_codex_sessions(limit: int = 100) -> list[SessionInfo]:
     """Discover Codex sessions from ~/.codex/sessions/."""
-    sessions_dir = Path.home() / ".codex" / "sessions"
-    if not sessions_dir.is_dir():
-        return []
-
-    # Collect rollout files — filenames contain timestamps, so sort lexicographically
-    candidates: list[Path] = sorted(
-        sessions_dir.rglob("rollout-*.jsonl"),
-        key=lambda p: p.name,
-        reverse=True,
-    )[:limit * 2]  # over-fetch to account for subagent files we'll skip
+    candidates = [
+        (mtime, path)
+        for mtime, path, fmt in _collect_searchable_paths(limit * 2)
+        if fmt == "codex"
+    ][:limit]
 
     sessions: list[SessionInfo] = []
-    for jsonl_file in candidates:
-        if len(sessions) >= limit:
-            break
-
-        entries = _read_first_lines(str(jsonl_file), max_lines=15)
-        if not entries:
-            continue
-
-        # First entry should be session_meta
-        meta = entries[0]
-        if meta.get("type") != "session_meta":
-            continue
-
-        payload = meta.get("payload", {})
-
-        # Skip subagent sessions
-        source = payload.get("source", "")
-        if isinstance(source, dict) and "subagent" in source:
-            continue
-
-        timestamp = payload.get("timestamp", meta.get("timestamp", ""))
-        project_name = _project_name_from_codex(payload)
-
-        # Find first user prompt
-        first_prompt = ""
-        for entry in entries[1:]:
-            if entry.get("type") != "response_item":
-                continue
-            p = entry.get("payload", {})
-            if p.get("role") != "user":
-                continue
-            for block in p.get("content", []):
-                if block.get("type") == "input_text":
-                    text = block.get("text", "").strip()
-                    # Skip system/instruction messages
-                    if text.startswith("<") or text.startswith("#"):
-                        continue
-                    first_prompt = text[:200]
-                    break
-            if first_prompt:
-                break
-
-        sessions.append(SessionInfo(
-            path=str(jsonl_file),
-            format="codex",
-            timestamp=timestamp,
-            project=project_name,
-            first_prompt=first_prompt,
-        ))
+    for _mtime, jsonl_file in candidates:
+        info = _build_codex_session_info(jsonl_file)
+        if info:
+            sessions.append(info)
 
     return sessions
 
@@ -248,3 +281,56 @@ def discover_sessions(limit: int = 100) -> list[SessionInfo]:
     combined = claude + codex
     combined.sort(key=lambda s: s.timestamp, reverse=True)
     return combined[:limit]
+
+
+# ---------------------------------------------------------------------------
+# Full-text search
+# ---------------------------------------------------------------------------
+
+def _grep_files(paths: list[str], query: str) -> set[str]:
+    """Use grep to find which files contain *query* (case-insensitive, literal)."""
+    if not paths:
+        return set()
+    try:
+        result = subprocess.run(
+            ["grep", "-ilF", "--", query] + paths,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        # exit 0 = matches found, 1 = no matches, 2 = error
+        if result.returncode <= 1:
+            return set(result.stdout.strip().splitlines())
+    except (subprocess.TimeoutExpired, OSError):
+        pass
+    return set()
+
+
+def search_sessions(query: str, limit: int = 100) -> list[SessionInfo]:
+    """Search session file contents and return matching SessionInfo entries."""
+    candidates = _collect_searchable_paths(limit * 3)
+    all_paths = [str(path) for _mtime, path, _fmt in candidates]
+
+    matched_paths = _grep_files(all_paths, query)
+    if not matched_paths:
+        return []
+
+    # Build a format lookup from candidates
+    fmt_by_path = {str(path): fmt for _mtime, path, fmt in candidates}
+
+    sessions: list[SessionInfo] = []
+    for _mtime, path, fmt in candidates:
+        if len(sessions) >= limit:
+            break
+        spath = str(path)
+        if spath not in matched_paths:
+            continue
+        if fmt == "claude":
+            info = _build_claude_session_info(path)
+        else:
+            info = _build_codex_session_info(path)
+        if info:
+            sessions.append(info)
+
+    sessions.sort(key=lambda s: s.timestamp, reverse=True)
+    return sessions
