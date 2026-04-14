@@ -170,6 +170,32 @@ body {{
     background: var(--active);
 }}
 
+.limit-label {{
+    margin-left: auto;
+    color: var(--text-dim);
+    font-family: var(--font);
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}}
+
+.limit-select {{
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-family: var(--font);
+    font-size: 11px;
+    padding: 3px 6px;
+    cursor: pointer;
+}}
+
+.limit-select:hover {{
+    color: var(--text);
+    border-color: var(--text-dim);
+}}
+
 /* --- Session list --- */
 .session-list {{
     flex: 1;
@@ -530,6 +556,16 @@ body {{
                 <button class="type-btn active" data-type="all">All</button>
                 <button class="type-btn" data-type="claude">Claude</button>
                 <button class="type-btn" data-type="codex">Codex</button>
+                <label class="limit-label">Limit: <select class="limit-select" id="limitSelect">
+                    <option value="10">10</option>
+                    <option value="50">50</option>
+                    <option value="100" selected>100</option>
+                    <option value="200">200</option>
+                    <option value="500">500</option>
+                    <option value="1000">1000</option>
+                    <option value="5000">5000</option>
+                    <option value="10000">10000</option>
+                </select></label>
             </div>
         </div>
         <div class="session-list" id="sessionList">
@@ -701,7 +737,7 @@ body {{
         }}
         isSearching = true;
         showLoading();
-        var params = new URLSearchParams({{ q: query, type: activeType }});
+        var params = new URLSearchParams({{ q: query, type: activeType, limit: document.getElementById("limitSelect").value }});
         fetch("/api/sessions?" + params)
             .then(function(r) {{ return r.json(); }})
             .then(function(data) {{
@@ -836,24 +872,38 @@ body {{
         btn.textContent = panel.classList.contains("collapsed") ? "\\u00bb" : "\\u00ab";
     }});
 
-    // Load sessions
-    fetch("/api/sessions")
-        .then(function(r) {{ return r.json(); }})
-        .then(function(data) {{
-            sessions = data;
-            renderCards(sessions);
-            if (window.location.hash) {{
-                var encoded = window.location.hash.slice(1);
-                var match = sessions.find(function(s) {{ return s.encoded === encoded; }});
-                if (match) {{
-                    openSession(encoded, match.path);
+    document.getElementById("limitSelect").addEventListener("change", function() {{
+        if (isSearching) {{
+            doSearch();
+        }} else {{
+            loadSessions();
+        }}
+    }});
+
+    function loadSessions() {{
+        showLoading();
+        var params = new URLSearchParams({{ limit: document.getElementById("limitSelect").value }});
+        fetch("/api/sessions?" + params)
+            .then(function(r) {{ return r.json(); }})
+            .then(function(data) {{
+                sessions = data;
+                renderCards(sessions);
+                if (window.location.hash) {{
+                    var encoded = window.location.hash.slice(1);
+                    var match = sessions.find(function(s) {{ return s.encoded === encoded; }});
+                    if (match) {{
+                        openSession(encoded, match.path);
+                    }}
                 }}
-            }}
-        }})
-        .catch(function() {{
-            document.getElementById("sessionList").innerHTML =
-                '<div class="empty-state">Failed to load sessions</div>';
-        }});
+            }})
+            .catch(function() {{
+                document.getElementById("sessionList").innerHTML =
+                    '<div class="empty-state">Failed to load sessions</div>';
+            }});
+    }}
+
+    // Load sessions
+    loadSessions();
 }})();
 </script>
 </body>

@@ -87,11 +87,15 @@ class WatchHandler(BaseHTTPRequestHandler):
         params = params or {}
         q = params.get("q", [""])[0].strip()
         type_filter = params.get("type", ["all"])[0]
+        try:
+            limit = max(1, int(params.get("limit", ["100"])[0]))
+        except (ValueError, IndexError):
+            limit = 100
 
         if q:
-            sessions = search_sessions(q, limit=100)
+            sessions = search_sessions(q, limit=limit)
         else:
-            sessions = discover_sessions(limit=100)
+            sessions = discover_sessions(limit=limit)
 
         if type_filter and type_filter != "all":
             sessions = [s for s in sessions if s.format == type_filter]
