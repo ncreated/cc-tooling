@@ -254,16 +254,78 @@ details > .detail-body {{
 .toolbar button:hover {{
     background: var(--border);
 }}
+
+.toolbar button.active {{
+    background: var(--active);
+    border-color: var(--accent);
+    color: var(--accent);
+}}
 </style>
 </head>
 <body>
 <div class="toolbar">
 <button onclick="expandAll()">Expand All</button>
 <button onclick="collapseAll()">Collapse All</button>
+<button id="autoRefreshBtn" onclick="toggleAutoRefresh()">Auto-refresh</button>
 </div>
 <script>
 function expandAll() {{ document.querySelectorAll('details').forEach(d => d.open = true); }}
 function collapseAll() {{ document.querySelectorAll('details').forEach(d => d.open = false); }}
+
+var autoRefreshTimer = null;
+
+function toggleAutoRefresh() {{
+    var btn = document.getElementById('autoRefreshBtn');
+    if (autoRefreshTimer) {{
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+        btn.classList.remove('active');
+    }} else {{
+        autoRefreshTimer = setInterval(refreshSession, 750);
+        btn.classList.add('active');
+    }}
+}}
+
+function refreshSession() {{
+    var scrollY = window.scrollY;
+    var openSet = new Set();
+    document.querySelectorAll('details').forEach(function(d, i) {{
+        if (d.open) openSet.add(i);
+    }});
+
+    fetch(location.href)
+        .then(function(r) {{ return r.text(); }})
+        .then(function(html) {{
+            var parser = new DOMParser();
+            var newDoc = parser.parseFromString(html, 'text/html');
+
+            var toolbar = document.querySelector('.toolbar');
+            var toRemove = [];
+            var node = toolbar.nextSibling;
+            while (node) {{
+                if (node.nodeType === 1 && node.tagName !== 'SCRIPT') {{
+                    toRemove.push(node);
+                }}
+                node = node.nextSibling;
+            }}
+            toRemove.forEach(function(n) {{ n.remove(); }});
+
+            var newToolbar = newDoc.querySelector('.toolbar');
+            node = newToolbar.nextSibling;
+            while (node) {{
+                if (node.nodeType === 1 && node.tagName !== 'SCRIPT') {{
+                    document.body.appendChild(document.importNode(node, true));
+                }}
+                node = node.nextSibling;
+            }}
+
+            document.querySelectorAll('details').forEach(function(d, i) {{
+                d.open = openSet.has(i);
+            }});
+
+            window.scrollTo(0, scrollY);
+        }});
+}}
 </script>
 """
 
