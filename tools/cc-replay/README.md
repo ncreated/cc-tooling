@@ -1,21 +1,6 @@
 # cc-replay
 
-Converts Claude Code session JSONL files into standalone, self-contained HTML for easy review.
-
-## What it does
-
-Claude Code stores conversation history as JSONL files in `~/.claude/projects/`. This tool parses those files and produces a single HTML page where you can browse the full conversation — messages, tool calls, thinking blocks, and subagent sessions — with no external dependencies.
-
-### Features
-
-- User and assistant messages rendered as chat blocks
-- Tool calls with inputs and results (collapsible, collapsed by default)
-- Extended thinking blocks (collapsible)
-- Subagent sessions as nested collapsible sections
-- Expand All / Collapse All toolbar
-- Multiline strings in tool inputs formatted with real line breaks
-- Parse errors surfaced as warning banners (not silently dropped)
-- Dark theme, monospace, single-file HTML (no external resources)
+Tools for browsing, searching, and reviewing Claude Code / Codex session history.
 
 ## Setup
 
@@ -26,7 +11,21 @@ make install
 
 This creates a `.venv/` and installs dependencies.
 
-## Usage
+## Watch mode (web UI)
+
+`make watch` starts a local web UI for browsing and viewing all your sessions.
+
+```sh
+make watch
+# or with a custom port (default: 8833)
+make watch ARGS="--port 9000"
+```
+
+Open `http://localhost:8833/` to browse sessions, search across them, and view rendered conversations directly in the browser.
+
+## Single session replay
+
+Converts a session JSONL file into a standalone, self-contained HTML page — messages, tool calls, thinking blocks, and subagent sessions — with no external dependencies.
 
 ```sh
 # Generate HTML and auto-open in browser
