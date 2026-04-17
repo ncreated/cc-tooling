@@ -586,9 +586,7 @@ body {{
             </div>
             <div class="analysis-body">
                 <div class="analysis-selected" id="analysisSelected">No sessions selected</div>
-                <div class="analysis-output" id="analysisOutput">
-                    <span class="placeholder-text">Select sessions and ask a question</span>
-                </div>
+                <div class="analysis-output" id="analysisOutput"><span class="placeholder-text">Select sessions and ask a question</span></div>
                 <div class="analysis-input-row">
                     <textarea class="analysis-input" id="analysisInput"
                         placeholder="Ask about selected sessions..."
