@@ -131,6 +131,7 @@ class WatchHandler(BaseHTTPRequestHandler):
 
         session_paths = body.get("session_paths", [])
         prompt = body.get("prompt", "").strip()
+        model = body.get("model") or None
 
         if not session_paths:
             self._serve_json({"error": "No sessions selected"}, 400)
@@ -149,7 +150,7 @@ class WatchHandler(BaseHTTPRequestHandler):
                 return
 
         try:
-            response = analyze_sessions(session_paths, prompt)
+            response = analyze_sessions(session_paths, prompt, model=model)
             self._serve_json({"response": response})
         except Exception as exc:
             self._serve_json({"error": str(exc)}, 500)

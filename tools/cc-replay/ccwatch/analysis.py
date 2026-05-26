@@ -81,8 +81,15 @@ def prepare_session_transcript(session_path: str) -> str:
     return f"<session {attrs}>\n{transcript}\n</session>"
 
 
-def analyze_sessions(session_paths: list[str], prompt: str) -> str:
-    """Analyze one or more sessions by piping transcripts + prompt to claude -p."""
+ALLOWED_MODELS = {"haiku", "sonnet", "opus"}
+
+
+def analyze_sessions(session_paths: list[str], prompt: str, model: str | None = None) -> str:
+    """Analyze one or more sessions by piping transcripts + prompt to claude -p.
+
+    *model*: optional alias passed as `--model <alias>` to the claude CLI.
+    Must be one of ALLOWED_MODELS; otherwise the flag is omitted (CLI default).
+    """
     if not shutil.which("claude"):
         return "Error: 'claude' CLI not found in PATH. Install Claude Code to use session analysis."
 
@@ -97,9 +104,13 @@ def analyze_sessions(session_paths: list[str], prompt: str) -> str:
     # Build full prompt: transcripts + user question
     full_prompt = "\n\n".join(transcripts) + "\n\n" + prompt
 
+    cmd = ["claude", "-p"]
+    if model and model in ALLOWED_MODELS:
+        cmd += ["--model", model]
+
     try:
         result = subprocess.run(
-            ["claude", "-p"],
+            cmd,
             input=full_prompt,
             capture_output=True,
             text=True,

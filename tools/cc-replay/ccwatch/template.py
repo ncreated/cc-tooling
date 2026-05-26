@@ -670,6 +670,30 @@ body.resizing iframe {{
     opacity: 0.4;
 }}
 
+.analysis-model {{
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-family: var(--font);
+    font-size: 11px;
+    padding: 0 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    align-self: flex-end;
+    height: 36px;
+}}
+
+.analysis-model:hover {{
+    color: var(--text);
+    border-color: var(--text-dim);
+}}
+
+.analysis-model:disabled {{
+    opacity: 0.4;
+    cursor: not-allowed;
+}}
+
 .analysis-send {{
     background: var(--active);
     border: 1px solid var(--accent);
@@ -789,6 +813,12 @@ body.resizing iframe {{
                 <div class="analysis-selected" id="analysisSelected">No sessions selected</div>
                 <div class="analysis-output" id="analysisOutput"><span class="placeholder-text">Select sessions and ask a question</span></div>
                 <div class="analysis-input-row">
+                    <select class="analysis-model" id="analysisModel" title="Model used for analysis">
+                        <option value="">Default</option>
+                        <option value="haiku">Haiku</option>
+                        <option value="sonnet">Sonnet</option>
+                        <option value="opus">Opus</option>
+                    </select>
                     <textarea class="analysis-input" id="analysisInput"
                         placeholder="Ask about selected sessions..."
                         rows="1" disabled></textarea>
@@ -1179,7 +1209,8 @@ body.resizing iframe {{
             headers: {{ "Content-Type": "application/json" }},
             body: JSON.stringify({{
                 session_paths: Array.from(selectedPaths),
-                prompt: prompt
+                prompt: prompt,
+                model: document.getElementById("analysisModel").value || null
             }}),
             signal: analysisAbort.signal
         }})
@@ -1248,6 +1279,18 @@ body.resizing iframe {{
     }});
 
     // Analysis panel
+    (function() {{
+        var modelSelect = document.getElementById("analysisModel");
+        var saved = localStorage.getItem("ccwatch.analysisModel");
+        if (saved !== null) {{
+            var opt = modelSelect.querySelector('option[value="' + saved.replace(/"/g, '') + '"]');
+            if (opt) modelSelect.value = saved;
+        }}
+        modelSelect.addEventListener("change", function() {{
+            localStorage.setItem("ccwatch.analysisModel", modelSelect.value);
+        }});
+    }})();
+
     document.getElementById("analysisSend").addEventListener("click", doAnalyze);
 
     document.getElementById("analysisInput").addEventListener("keydown", function(e) {{
