@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "ccreplay": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/tools/cc-replay/bin/ccreplay-mcp"
+    }
+  }
+}

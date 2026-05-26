@@ -55,6 +55,21 @@ By default, the HTML file is written to `/tmp/ccreplay/<session_id>.html` and op
 make run ARGS="~/.claude/projects/-Users-me-myproject/abc123.jsonl"
 ```
 
+## MCP server
+
+When the `cc-tooling` plugin is loaded by Claude Code (e.g. via `claude --plugin-dir /path/to/cc-tooling`), an `ccreplay` MCP server becomes available to the agent. It exposes four tools:
+
+| Tool | Purpose |
+|---|---|
+| `list_projects` | Enumerate projects that have recorded sessions, with counts. |
+| `list_sessions` | List sessions, filtered by project / ISO date range / format / limit. |
+| `search_sessions` | Full-text grep across session contents, with the same filters. |
+| `get_session` | Return a structured-text transcript of one session by `session_id`. |
+
+`session_id` is the JSONL filename stem (UUID for Claude, `rollout-...-{uuid}` for Codex). Transcripts include user/assistant text and tool-call summaries; thinking, tool results, and images are omitted to keep them token-efficient for downstream LLM analysis.
+
+The server bootstraps itself on first run — `bin/ccreplay-mcp` creates `.venv/` and installs `requirements.txt` automatically, so no `make install` is required just to use the MCP.
+
 ## Session file location
 
 Claude Code stores sessions at:

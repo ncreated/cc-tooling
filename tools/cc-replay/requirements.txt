@@ -1,1 +1,1 @@
-# cc-replay: no external dependencies (stdlib only)
+mcp>=1.0
