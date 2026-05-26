@@ -47,10 +47,40 @@ body {{
 .sidebar {{
     width: 340px;
     min-width: 280px;
+    max-width: 800px;
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
     background: var(--surface);
+    position: relative;
+    flex-shrink: 0;
+}}
+
+.sidebar-resizer {{
+    position: absolute;
+    top: 0;
+    right: -3px;
+    width: 6px;
+    height: 100%;
+    cursor: ew-resize;
+    z-index: 10;
+    background: transparent;
+    transition: background 0.15s ease;
+}}
+
+.sidebar-resizer:hover,
+.sidebar-resizer.dragging {{
+    background: var(--accent);
+    opacity: 0.5;
+}}
+
+body.resizing {{
+    user-select: none;
+    cursor: ew-resize;
+}}
+
+body.resizing iframe {{
+    pointer-events: none;
 }}
 
 .sidebar-header {{
@@ -170,8 +200,43 @@ body {{
     background: var(--active);
 }}
 
+.filter-separator {{
+    width: 1px;
+    background: var(--border);
+    align-self: stretch;
+    margin: 1px 2px;
+}}
+
+.view-btn {{
+    background: var(--bg);
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-family: var(--font);
+    font-size: 11px;
+    padding: 3px 8px;
+    cursor: pointer;
+}}
+
+.view-btn:hover {{
+    color: var(--text);
+    border-color: var(--text-dim);
+}}
+
+.view-btn.active {{
+    color: var(--codex-badge);
+    border-color: var(--codex-badge);
+    border-style: solid;
+    background: rgba(63, 185, 80, 0.08);
+}}
+
+.limit-row {{
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+}}
+
 .limit-label {{
-    margin-left: auto;
     color: var(--text-dim);
     font-family: var(--font);
     font-size: 11px;
@@ -308,6 +373,113 @@ body {{
     font-size: 12px;
 }}
 
+/* --- Session groups --- */
+.session-group {{
+    margin-bottom: 8px;
+}}
+
+.group-header {{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    color: var(--text-dim);
+    font-size: 11px;
+}}
+
+.group-header:hover {{
+    background: var(--hover);
+    color: var(--text);
+}}
+
+.group-chevron {{
+    display: inline-block;
+    width: 10px;
+    text-align: center;
+    font-size: 9px;
+    transition: transform 0.15s ease;
+}}
+
+.session-group.collapsed .group-chevron {{
+    transform: rotate(-90deg);
+}}
+
+.group-checkbox {{
+    flex-shrink: 0;
+    accent-color: var(--codex-badge);
+    cursor: pointer;
+    margin: 0;
+}}
+
+.group-name {{
+    color: var(--text);
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}}
+
+.group-name:hover {{
+    color: var(--accent);
+    text-decoration: underline;
+}}
+
+.group-count {{
+    color: var(--text-dim);
+    font-size: 11px;
+    margin-left: auto;
+    flex-shrink: 0;
+}}
+
+.group-body {{
+    margin-top: 2px;
+    padding-left: 4px;
+    border-left: 1px solid var(--border);
+    margin-left: 3px;
+}}
+
+.session-group.collapsed .group-body {{
+    display: none;
+}}
+
+.project-filter-banner {{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    margin-bottom: 8px;
+    background: var(--active);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--text);
+}}
+
+.project-filter-banner strong {{
+    color: var(--accent);
+}}
+
+.project-filter-clear {{
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 4px;
+}}
+
+.project-filter-clear:hover {{
+    color: var(--error);
+}}
+
 /* --- Content area --- */
 .content {{
     flex: 1;
@@ -338,16 +510,39 @@ body {{
 
 /* --- Analysis panel --- */
 .analysis-panel {{
-    width: 420px;
+    width: var(--analysis-w, 420px);
     border-left: 1px solid var(--border);
     background: var(--surface);
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
+    position: relative;
 }}
 
 .analysis-panel.collapsed {{
     width: 40px;
+}}
+
+.analysis-resizer {{
+    position: absolute;
+    top: 0;
+    left: -3px;
+    width: 6px;
+    height: 100%;
+    cursor: ew-resize;
+    z-index: 10;
+    background: transparent;
+    transition: background 0.15s ease;
+}}
+
+.analysis-resizer:hover,
+.analysis-resizer.dragging {{
+    background: var(--accent);
+    opacity: 0.5;
+}}
+
+.analysis-panel.collapsed .analysis-resizer {{
+    display: none;
 }}
 
 .analysis-header {{
@@ -556,6 +751,10 @@ body {{
                 <button class="type-btn active" data-type="all">All</button>
                 <button class="type-btn" data-type="claude">Claude</button>
                 <button class="type-btn" data-type="codex">Codex</button>
+                <span class="filter-separator" aria-hidden="true"></span>
+                <button class="view-btn active" id="groupToggle" title="Group sessions by project">&#9638; Group</button>
+            </div>
+            <div class="limit-row">
                 <label class="limit-label">Limit: <select class="limit-select" id="limitSelect">
                     <option value="10">10</option>
                     <option value="50">50</option>
@@ -574,12 +773,14 @@ body {{
                 <div>Loading sessions...</div>
             </div>
         </div>
+        <div class="sidebar-resizer" id="sidebarResizer" title="Drag to resize"></div>
     </div>
     <div class="content" id="content">
         <div class="content-main" id="contentMain">
             <div class="placeholder">Select a session from the sidebar</div>
         </div>
         <div class="analysis-panel" id="analysisPanel">
+            <div class="analysis-resizer" id="analysisResizer" title="Drag to resize"></div>
             <div class="analysis-header">
                 <h2>Analysis</h2>
                 <button class="analysis-toggle" id="analysisToggle">&laquo;</button>
@@ -606,6 +807,18 @@ body {{
     var selectedPaths = new Set();
     var analysisAbort = null;
 
+    var groupByProject = localStorage.getItem("ccwatch.groupByProject") !== "false";
+    var collapsedGroups = new Set();
+    try {{
+        var stored = JSON.parse(localStorage.getItem("ccwatch.collapsedGroups") || "[]");
+        if (Array.isArray(stored)) collapsedGroups = new Set(stored);
+    }} catch (e) {{ /* ignore */ }}
+    var projectFilter = null;
+
+    function persistCollapsedGroups() {{
+        localStorage.setItem("ccwatch.collapsedGroups", JSON.stringify(Array.from(collapsedGroups)));
+    }}
+
     // --- Utilities ---
 
     function relativeTime(isoStr) {{
@@ -628,6 +841,10 @@ body {{
         return d.innerHTML;
     }}
 
+    function escAttr(s) {{
+        return escHtml(s).replace(/"/g, "&quot;");
+    }}
+
     // --- Search ---
 
     function showLoading() {{
@@ -635,67 +852,48 @@ body {{
             '<div class="loading"><div class="spinner"></div><div>Searching...</div></div>';
     }}
 
-    function renderCards(data) {{
-        var list = document.getElementById("sessionList");
-        var filtered = data;
+    function cardHtml(s, inGroup) {{
+        var isActive = s.path === activeSessionPath;
+        var isSelected = selectedPaths.has(s.path);
+        var badgeClass = s.format === "claude" ? "badge-claude" : "badge-codex";
+        var label = s.format === "claude" ? "Claude" : "Codex";
+        var cardClass = "session-card";
+        if (isActive) cardClass += " active";
+        if (isSelected) cardClass += " selected";
 
-        if (!isSearching && activeType !== "all") {{
-            filtered = data.filter(function(s) {{
-                return s.format === activeType;
-            }});
+        var html = '<div class="' + cardClass + '" data-path="' + escHtml(s.encoded) + '" data-raw-path="' + escHtml(s.path) + '">';
+        html += '<input type="checkbox" class="card-checkbox"' + (isSelected ? ' checked' : '') + '>';
+        html += '<div class="card-body">';
+        html += '<div class="card-header">';
+        html += '<span class="badge ' + badgeClass + '">' + label + '</span>';
+        html += '<span class="card-time" title="' + escHtml(s.timestamp) + '">' + relativeTime(s.timestamp) + '</span>';
+        if (s.git_branch) {{
+            html += '<span class="card-branch">' + escHtml(s.git_branch) + '</span>';
         }}
-
-        if (filtered.length === 0) {{
-            list.innerHTML = '<div class="empty-state">No sessions found</div>';
-            return;
-        }}
-
-        list.scrollTop = 0;
-
-        var html = "";
-        for (var i = 0; i < filtered.length; i++) {{
-            var s = filtered[i];
-            var isActive = s.path === activeSessionPath;
-            var isSelected = selectedPaths.has(s.path);
-            var badgeClass = s.format === "claude" ? "badge-claude" : "badge-codex";
-            var label = s.format === "claude" ? "Claude" : "Codex";
-            var cardClass = "session-card";
-            if (isActive) cardClass += " active";
-            if (isSelected) cardClass += " selected";
-
-            html += '<div class="' + cardClass + '" data-path="' + escHtml(s.encoded) + '" data-raw-path="' + escHtml(s.path) + '">';
-            html += '<input type="checkbox" class="card-checkbox"' + (isSelected ? ' checked' : '') + '>';
-            html += '<div class="card-body">';
-            html += '<div class="card-header">';
-            html += '<span class="badge ' + badgeClass + '">' + label + '</span>';
-            html += '<span class="card-time" title="' + escHtml(s.timestamp) + '">' + relativeTime(s.timestamp) + '</span>';
-            if (s.git_branch) {{
-                html += '<span class="card-branch">' + escHtml(s.git_branch) + '</span>';
-            }}
-            html += '</div>';
+        html += '</div>';
+        if (!inGroup) {{
             html += '<div class="card-project">' + escHtml(s.project) + '</div>';
-            if (s.slug) {{
-                html += '<div class="card-slug">' + escHtml(s.slug) + '</div>';
-            }}
-            if (s.first_prompt) {{
-                var prompt = s.first_prompt;
-                prompt = prompt.replace(/<[^>]+>/g, "").trim();
-                if (prompt) {{
-                    html += '<div class="card-prompt">' + escHtml(prompt) + '</div>';
-                }}
-            }}
-            html += '</div>';
-            html += '</div>';
         }}
-        list.innerHTML = html;
+        if (s.slug) {{
+            html += '<div class="card-slug">' + escHtml(s.slug) + '</div>';
+        }}
+        if (s.first_prompt) {{
+            var prompt = s.first_prompt.replace(/<[^>]+>/g, "").trim();
+            if (prompt) {{
+                html += '<div class="card-prompt">' + escHtml(prompt) + '</div>';
+            }}
+        }}
+        html += '</div>';
+        html += '</div>';
+        return html;
+    }}
 
-        // Attach handlers
-        list.querySelectorAll(".session-card").forEach(function(card) {{
+    function attachCardHandlers(root) {{
+        root.querySelectorAll(".session-card").forEach(function(card) {{
             var checkbox = card.querySelector(".card-checkbox");
             var rawPath = card.getAttribute("data-raw-path");
             var encoded = card.getAttribute("data-path");
 
-            // Checkbox: toggle selection
             checkbox.addEventListener("click", function(e) {{
                 e.stopPropagation();
                 if (selectedPaths.has(rawPath)) {{
@@ -705,14 +903,187 @@ body {{
                     selectedPaths.add(rawPath);
                     card.classList.add("selected");
                 }}
+                refreshGroupCheckbox(card.closest(".session-group"));
                 updateAnalysisState();
             }});
 
-            // Card click: open in iframe
             card.addEventListener("click", function(e) {{
                 if (e.target === checkbox) return;
                 openSession(encoded, rawPath);
             }});
+        }});
+    }}
+
+    function refreshGroupCheckbox(groupEl) {{
+        if (!groupEl) return;
+        var cb = groupEl.querySelector(".group-checkbox");
+        if (!cb) return;
+        var paths = JSON.parse(groupEl.getAttribute("data-paths") || "[]");
+        var selectedCount = 0;
+        for (var i = 0; i < paths.length; i++) {{
+            if (selectedPaths.has(paths[i])) selectedCount++;
+        }}
+        if (selectedCount === 0) {{
+            cb.checked = false;
+            cb.indeterminate = false;
+        }} else if (selectedCount === paths.length) {{
+            cb.checked = true;
+            cb.indeterminate = false;
+        }} else {{
+            cb.checked = false;
+            cb.indeterminate = true;
+        }}
+    }}
+
+    function attachGroupHandlers(root) {{
+        root.querySelectorAll(".session-group").forEach(function(groupEl) {{
+            var header = groupEl.querySelector(".group-header");
+            var checkbox = groupEl.querySelector(".group-checkbox");
+            var nameEl = groupEl.querySelector(".group-name");
+            var project = groupEl.getAttribute("data-project");
+            var paths = JSON.parse(groupEl.getAttribute("data-paths") || "[]");
+
+            refreshGroupCheckbox(groupEl);
+
+            checkbox.addEventListener("click", function(e) {{
+                e.stopPropagation();
+                var shouldSelectAll = checkbox.checked;
+                paths.forEach(function(p) {{
+                    if (shouldSelectAll) selectedPaths.add(p);
+                    else selectedPaths.delete(p);
+                }});
+                groupEl.querySelectorAll(".session-card").forEach(function(card) {{
+                    var raw = card.getAttribute("data-raw-path");
+                    var cb = card.querySelector(".card-checkbox");
+                    var on = selectedPaths.has(raw);
+                    cb.checked = on;
+                    card.classList.toggle("selected", on);
+                }});
+                checkbox.indeterminate = false;
+                updateAnalysisState();
+            }});
+
+            nameEl.addEventListener("click", function(e) {{
+                e.stopPropagation();
+                projectFilter = project;
+                renderCards(sessions);
+            }});
+
+            header.addEventListener("click", function(e) {{
+                if (e.target === checkbox || e.target === nameEl) return;
+                var nowCollapsed = !groupEl.classList.contains("collapsed");
+                groupEl.classList.toggle("collapsed", nowCollapsed);
+                if (nowCollapsed) collapsedGroups.add(project);
+                else collapsedGroups.delete(project);
+                persistCollapsedGroups();
+            }});
+        }});
+    }}
+
+    function renderCards(data) {{
+        var list = document.getElementById("sessionList");
+        var filtered = data;
+
+        if (!isSearching && activeType !== "all") {{
+            filtered = filtered.filter(function(s) {{ return s.format === activeType; }});
+        }}
+        if (projectFilter) {{
+            filtered = filtered.filter(function(s) {{ return s.project === projectFilter; }});
+        }}
+
+        if (filtered.length === 0) {{
+            var emptyHtml = "";
+            if (projectFilter) {{
+                emptyHtml += '<div class="project-filter-banner">Project: <strong>' + escHtml(projectFilter) + '</strong>'
+                    + '<button class="project-filter-clear" id="projectFilterClear" title="Clear project filter">&times;</button></div>';
+            }}
+            emptyHtml += '<div class="empty-state">No sessions found</div>';
+            list.innerHTML = emptyHtml;
+            wireProjectFilterClear(list);
+            return;
+        }}
+
+        list.scrollTop = 0;
+        var html = "";
+
+        if (projectFilter) {{
+            html += '<div class="project-filter-banner">Project: <strong>' + escHtml(projectFilter) + '</strong>'
+                + '<button class="project-filter-clear" id="projectFilterClear" title="Clear project filter">&times;</button></div>';
+        }}
+
+        var useGroups = groupByProject && !projectFilter;
+
+        if (!useGroups) {{
+            for (var i = 0; i < filtered.length; i++) {{
+                html += cardHtml(filtered[i], false);
+            }}
+            list.innerHTML = html;
+            attachCardHandlers(list);
+            wireProjectFilterClear(list);
+            return;
+        }}
+
+        // Group by project, sort groups by max timestamp desc, "unknown" last.
+        var groupsMap = Object.create(null);
+        for (var j = 0; j < filtered.length; j++) {{
+            var s = filtered[j];
+            var key = s.project || "unknown";
+            if (!groupsMap[key]) groupsMap[key] = [];
+            groupsMap[key].push(s);
+        }}
+
+        var groupList = Object.keys(groupsMap).map(function(name) {{
+            var items = groupsMap[name];
+            var maxTs = items[0].timestamp;
+            for (var k = 1; k < items.length; k++) {{
+                if (items[k].timestamp > maxTs) maxTs = items[k].timestamp;
+            }}
+            return {{ name: name, items: items, maxTs: maxTs }};
+        }});
+        groupList.sort(function(a, b) {{
+            if (a.name === "unknown" && b.name !== "unknown") return 1;
+            if (b.name === "unknown" && a.name !== "unknown") return -1;
+            if (a.maxTs < b.maxTs) return 1;
+            if (a.maxTs > b.maxTs) return -1;
+            return 0;
+        }});
+
+        for (var g = 0; g < groupList.length; g++) {{
+            var group = groupList[g];
+            var hasActive = activeSessionPath && group.items.some(function(it) {{ return it.path === activeSessionPath; }});
+            var collapsed = !isSearching && !hasActive && collapsedGroups.has(group.name);
+            var paths = group.items.map(function(it) {{ return it.path; }});
+            var pathsJson = escAttr(JSON.stringify(paths));
+
+            html += '<div class="session-group' + (collapsed ? ' collapsed' : '') + '"'
+                + ' data-project="' + escAttr(group.name) + '"'
+                + ' data-paths="' + pathsJson + '">';
+            html += '<div class="group-header">';
+            html += '<span class="group-chevron">&#9662;</span>';
+            html += '<input type="checkbox" class="group-checkbox" title="Select all sessions in this project">';
+            html += '<span class="group-name" title="Filter to ' + escAttr(group.name) + '">' + escHtml(group.name) + '</span>';
+            html += '<span class="group-count">' + group.items.length + '</span>';
+            html += '</div>';
+            html += '<div class="group-body">';
+            for (var m = 0; m < group.items.length; m++) {{
+                html += cardHtml(group.items[m], true);
+            }}
+            html += '</div>';
+            html += '</div>';
+        }}
+
+        list.innerHTML = html;
+        attachCardHandlers(list);
+        attachGroupHandlers(list);
+        wireProjectFilterClear(list);
+    }}
+
+    function wireProjectFilterClear(root) {{
+        var btn = root.querySelector("#projectFilterClear");
+        if (!btn) return;
+        btn.addEventListener("click", function() {{
+            projectFilter = null;
+            renderCards(sessions);
         }});
     }}
 
@@ -721,9 +1092,20 @@ body {{
         document.getElementById("contentMain").innerHTML =
             '<iframe src="/session/' + encoded + '"></iframe>';
         window.location.hash = encoded;
+        var activeGroup = null;
         document.querySelectorAll(".session-card").forEach(function(c) {{
-            c.classList.toggle("active", c.getAttribute("data-raw-path") === rawPath);
+            var isMatch = c.getAttribute("data-raw-path") === rawPath;
+            c.classList.toggle("active", isMatch);
+            if (isMatch) activeGroup = c.closest(".session-group");
         }});
+        if (activeGroup) {{
+            activeGroup.classList.remove("collapsed");
+            var project = activeGroup.getAttribute("data-project");
+            if (project && collapsedGroups.has(project)) {{
+                collapsedGroups.delete(project);
+                persistCollapsedGroups();
+            }}
+        }}
     }}
 
     function doSearch() {{
@@ -829,8 +1211,20 @@ body {{
         document.getElementById("filterInput").value = "";
         updateClearBtn();
         isSearching = false;
+        projectFilter = null;
         renderCards(sessions);
     }});
+
+    (function() {{
+        var btn = document.getElementById("groupToggle");
+        btn.classList.toggle("active", groupByProject);
+        btn.addEventListener("click", function() {{
+            groupByProject = !groupByProject;
+            localStorage.setItem("ccwatch.groupByProject", String(groupByProject));
+            btn.classList.toggle("active", groupByProject);
+            renderCards(sessions);
+        }});
+    }})();
 
     document.getElementById("filterInput").addEventListener("input", updateClearBtn);
 
@@ -876,6 +1270,68 @@ body {{
         }} else {{
             loadSessions();
         }}
+    }});
+
+    // --- Panel resize ---
+
+    function makeResizable(opts) {{
+        var panel = opts.panel;
+        var resizer = opts.resizer;
+        var storageKey = opts.storageKey;
+        var minW = opts.minW;
+        var maxW = opts.maxW;
+        var direction = opts.direction; // +1: dragging right grows (sidebar), -1: dragging left grows (analysis)
+        var cssVar = opts.cssVar;       // if set, write width into this CSS custom property instead of style.width
+
+        function applyWidth(w) {{
+            if (cssVar) panel.style.setProperty(cssVar, w + "px");
+            else panel.style.width = w + "px";
+        }}
+
+        var saved = parseInt(localStorage.getItem(storageKey) || "0", 10);
+        if (saved >= minW && saved <= maxW) applyWidth(saved);
+
+        var dragging = false, startX = 0, startW = 0;
+
+        resizer.addEventListener("mousedown", function(e) {{
+            if (panel.classList.contains("collapsed")) return;
+            dragging = true;
+            startX = e.clientX;
+            startW = panel.getBoundingClientRect().width;
+            resizer.classList.add("dragging");
+            document.body.classList.add("resizing");
+            e.preventDefault();
+        }});
+
+        document.addEventListener("mousemove", function(e) {{
+            if (!dragging) return;
+            var dx = (e.clientX - startX) * direction;
+            var w = Math.min(maxW, Math.max(minW, startW + dx));
+            applyWidth(w);
+        }});
+
+        document.addEventListener("mouseup", function() {{
+            if (!dragging) return;
+            dragging = false;
+            resizer.classList.remove("dragging");
+            document.body.classList.remove("resizing");
+            localStorage.setItem(storageKey, String(Math.round(panel.getBoundingClientRect().width)));
+        }});
+    }}
+
+    makeResizable({{
+        panel: document.querySelector(".sidebar"),
+        resizer: document.getElementById("sidebarResizer"),
+        storageKey: "ccwatch.sidebarWidth",
+        minW: 280, maxW: 800, direction: 1
+    }});
+
+    makeResizable({{
+        panel: document.getElementById("analysisPanel"),
+        resizer: document.getElementById("analysisResizer"),
+        storageKey: "ccwatch.analysisWidth",
+        minW: 300, maxW: 800, direction: -1,
+        cssVar: "--analysis-w"
     }});
 
     function loadSessions() {{

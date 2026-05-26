@@ -20,15 +20,29 @@ class SessionInfo:
     git_branch: str = ""
 
 
+_WORKTREE_SUFFIXES = ("-worktrees", "_worktrees", ".worktrees", "-worktree", "_worktree", ".worktree")
+
+
 def _project_name_from_cwd(cwd: str) -> str:
     """Extract short project name from a working directory path.
 
     e.g. '/Users/maciek/Projects/cc-tooling' -> 'cc-tooling'
          '/Users/maciek/Projects/rum-ai-toolkit/tools/cr-eval' -> 'rum-ai-toolkit'
+         '/Users/maciek/kkpit-worktrees/who-is-who' -> 'kkpit'
+         '/Users/maciek/kkpit/worktrees/who-is-who' -> 'kkpit'
     """
     if not cwd:
         return "unknown"
     parts = Path(cwd).parts
+    # Worktree containers: "<project>-worktrees/branch" or "<project>/worktrees/branch".
+    # Checked first so that worktree branches collapse under the parent project.
+    for i, part in enumerate(parts):
+        low = part.lower()
+        for suffix in _WORKTREE_SUFFIXES:
+            if low.endswith(suffix) and len(low) > len(suffix):
+                return part[: -len(suffix)]
+        if low in ("worktrees", "worktree") and i > 0:
+            return parts[i - 1]
     # Look for a segment after a well-known parent like "Projects"
     for i, part in enumerate(parts):
         if part.lower() in ("projects", "repos", "src", "code", "work", "dev"):
